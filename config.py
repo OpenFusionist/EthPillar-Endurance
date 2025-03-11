@@ -26,8 +26,8 @@ endurance_devnet_relay_options = [
 ]
 
 endurance_relay_options = [
-    {'name': 'mainnet-eur', 'url': 'http://0xb1237e4b469262f305cb7607b74264f602c0f30f9405e63ce0283e83c240f4699981e01ba3fe40c5261b581fe1fdd0dd@relay-eur.endurancehub.org'},
-    {'name': 'mainnet-us', 'url': 'http://0x8aaa802de39ce9ab3f0fe937681bff1ec325894a5471ead6dd91c2e7465cf26a3a9cd24478837fe24fac957e014aa3bb@relay-us.endurancehub.org'}
+    {'name': 'mainnet-eur', 'url': 'https://0xb1237e4b469262f305cb7607b74264f602c0f30f9405e63ce0283e83c240f4699981e01ba3fe40c5261b581fe1fdd0dd@relay-eur.endurancehub.org'},
+    {'name': 'mainnet-us', 'url': 'https://0x8aaa802de39ce9ab3f0fe937681bff1ec325894a5471ead6dd91c2e7465cf26a3a9cd24478837fe24fac957e014aa3bb@relay-us.endurancehub.org'}
 ]
 
 # Checkpoint-Sync Data
