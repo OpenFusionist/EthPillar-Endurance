@@ -54,7 +54,7 @@ function downloadEthstakerDepositCli(){
     sudo apt install jq curl -y
 
     #Setup variables
-    BINARIES_URL="https://github.com/ohko4711/ethstaker-deposit-cli/releases/download/v${edc_version}/ethstaker_deposit-cli-${edc_hash}-${_platform}-${_arch}.tar.gz"
+    BINARIES_URL="https://github.com/OpenFusionist/ethstaker-deposit-cli/releases/download/v${edc_version}/ethstaker_deposit-cli-${edc_hash}-${_platform}-${_arch}.tar.gz"
     BINARY_FILE="ethstaker_deposit-cli.tar.gz"
 
     [[ -z $BINARIES_URL ]] && echo "Error: Unable to determine BINARIES URL" && exit 1
@@ -380,7 +380,7 @@ function setLaunchPadMessage(){
     [[ -n ${FAUCET} ]] && MSG_FAUCET=">> Faucet Available: $FAUCET"
     [[ -n ${HOMEPAGE} ]] && MSG_HOMEPAGE=">> Network Homepage: $HOMEPAGE"
     [[ -n ${EXPLORER} ]] && MSG_EXPLORER=">> Explorer:         $EXPLORER"
-    MSG_LAUNCHPAD="1) Visit the Launchpad: $LAUNCHPAD_URL\n(or use https://github.com/ohko4711/staking-batch-depositer for batch deposit)
+    MSG_LAUNCHPAD="1) Visit the Launchpad: $LAUNCHPAD_URL\n(or use https://github.com/OpenFusionist/staking-batch-depositer for batch deposit)
 \n2) Upload your deposit_data-#########.json found in the directory:
 \n$KEYFOLDER
 \n3) Connect the Launchpad with your wallet, review and accept terms.
