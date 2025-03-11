@@ -10,7 +10,7 @@
 ## :arrow\_forward: Quickstart: Ubuntu One-liner Install
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohko4711/EthPillar-Endurance/main/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/OpenFusionist/EthPillar-Endurance/main/install.sh)"
 ```
 
 ## :new: What is EthPillar?
@@ -92,7 +92,7 @@ Open a terminal window from anywhere by typing `Ctrl+Alt+T`
 To install, paste the following:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohko4711/EthPillar-Endurance/main/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/OpenFusionist/EthPillar-Endurance/main/install.sh)"
 ```
 
 ## :handshake: Option 2: Manual Install
@@ -107,7 +107,7 @@ sudo apt-get update && sudo apt-get install git curl ccze bc tmux
 
 ```bash
 mkdir -p ~/git/ethpillar
-git clone https://github.com/ohko4711/EthPillar-Endurance.git ~/git/ethpillar
+git clone https://github.com/OpenFusionist/EthPillar-Endurance.git ~/git/ethpillar
 sudo ln -s ~/git/ethpillar/ethpillar.sh /usr/local/bin/ethpillar
 ```
 
@@ -268,9 +268,9 @@ ETH accepted on Mainnet, Arbitrum, Base, Optimism. :pray:
 
 ## :telephone: Get in touch
 
-Have questions? Chat with other home stakers on [Discord](https://discord.gg/dEpAVWgFNB) or open PRs/issues on [Github](https://github.com/ohko4711/EthPillar-Endurance).&#x20;
+Have questions? Chat with other home stakers on [Discord](https://discord.gg/dEpAVWgFNB) or open PRs/issues on [Github](https://github.com/OpenFusionist/EthPillar-Endurance).&#x20;
 
-Open source source code available here: [https://github.com/ohko4711/EthPillar-Endurance](https://github.com/ohko4711/EthPillar-Endurance)
+Open source source code available here: [https://github.com/OpenFusionist/EthPillar-Endurance](https://github.com/OpenFusionist/EthPillar-Endurance)
 
 ## :heart: Donations
 
@@ -301,10 +301,10 @@ git pull
 
 We appreciate any help! To join in:
 
-* Star the project on [GitHub](https://github.com/ohko4711/EthPillar-Endurance).
+* Star the project on [GitHub](https://github.com/OpenFusionist/EthPillar-Endurance).
 * Share the project on X or reddit. Talk about your experiences with solo staking.
-* Provide feedback on [Github](https://github.com/ohko4711/EthPillar-Endurance/issues).
-* [Submit PRs](https://github.com/ohko4711/EthPillar-Endurance/pulls) to improve the code.
+* Provide feedback on [Github](https://github.com/OpenFusionist/EthPillar-Endurance/issues).
+* [Submit PRs](https://github.com/OpenFusionist/EthPillar-Endurance/pulls) to improve the code.
 
 ## :tada: Credits
 
