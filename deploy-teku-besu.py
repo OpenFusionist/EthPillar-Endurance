@@ -5,13 +5,12 @@
 # Validator-Install: Standalone Teku BN + Standalone Teku VC + Besu EL + MEVboost
 # Quickstart :: Minority Client :: Docker-free
 #
-# Made for home and solo stakers 
+# Made for home and solo stakers 🏠🥩
 #
 # Acknowledgments
 # Validator-Install is branched from validator-install written by Accidental-green: https://github.com/accidental-green/validator-install
 # The groundwork for this project was established through their previous efforts.
 
-import time
 import os
 import requests
 import re
@@ -42,7 +41,7 @@ def clear_screen():
 clear_screen()  # Call the function to clear the screen
 
 # Valid configurations
-valid_networks = ['MAINNET', 'HOLESKY', 'SEPOLIA', 'EPHEMERY', 'ENDURANCE']
+valid_networks = ['MAINNET', 'HOLESKY', 'SEPOLIA', 'EPHEMERY']
 valid_exec_clients = ['BESU']
 valid_consensus_clients = ['TEKU']
 valid_install_configs = ['Solo Staking Node', 'Full Node Only', 'Lido CSM Staking Node', 'Lido CSM Validator Client Only', 'Validator Client Only', 'Failover Staking Node']
@@ -58,19 +57,6 @@ CL_P2P_PORT=os.getenv('CL_P2P_PORT')
 CL_REST_PORT=os.getenv('CL_REST_PORT')
 CL_MAX_PEER_COUNT=os.getenv('CL_MAX_PEER_COUNT')
 CL_IP_ADDRESS=os.getenv('CL_IP_ADDRESS')
-
-# Endurance Mainnet
-EL_BOOTNODES=os.getenv('EL_BOOTNODES')
-CL_TRUSTPEERS=os.getenv('CL_TRUSTPEERS')
-CL_STATICPEERS=os.getenv('CL_STATICPEERS')
-CL_BOOTNODES=os.getenv('CL_BOOTNODES')
-
-# Endurance Devnet
-ENDURANCE_DEVNET_EL_BOOTNODES=os.getenv('ENDURANCE_DEVNET_EL_BOOTNODES')
-ENDURANCE_DEVNET_CL_STATICPEERS=os.getenv('ENDURANCE_DEVNET_CL_STATICPEERS')
-ENDURANCE_DEVNET_CL_TRUSTPEERS=os.getenv('ENDURANCE_DEVNET_CL_TRUSTPEERS')
-ENDURANCE_DEVNET_CL_BOOTNODES=os.getenv('ENDURANCE_DEVNET_CL_BOOTNODES')
-
 JWTSECRET_PATH=os.getenv('JWTSECRET_PATH')
 GRAFFITI=os.getenv('GRAFFITI')
 FEE_RECIPIENT_ADDRESS=os.getenv('FEE_RECIPIENT_ADDRESS')
@@ -130,10 +116,7 @@ if not args.network and not args.skip_prompts:
     index = SelectionMenu.get_selection(valid_networks,title='Validator Install Quickstart :: CoinCashew.com',subtitle='Installs Besu EL / Teku BN / Teku VC / MEVboost\nSelect Ethereum network:')
 
     # Exit selected
-    if index == len(valid_networks):
-        # add some hint for choice which network
-        print("Exiting...", valid_networks[index])
-        time.sleep(5)
+    if index == 4:
         exit(0)
 
     # Set network
@@ -255,6 +238,7 @@ if not NODE_ONLY and FEE_RECIPIENT_ADDRESS == "" and not args.skip_prompts:
         else:
             print("Invalid Ethereum address. Try again.")
 
+
 # Validates an CL beacon node address with port
 def validate_beacon_node_address(ip_port):
     pattern = r"^(http|https|ws):\/\/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(:?\d{1,5})?$"
@@ -298,33 +282,6 @@ if not args.skip_prompts:
         print(f'\nInstall cancelled by user. \n\nWhen ready, re-run install command:\npython3 {file_name}')
         exit(0)
 
-# for endurance network, EL,CL client custom genesis configuration
-def download_endurance_config(url):
-    # Save current working directory
-    original_dir = os.getcwd()
-    print(f"Before download_endurance_config:Original directory: {original_dir}")
-    print(f"download_endurance_config:URL: {url}")
-    print(f"Ready to download endurance network genesis configuration")
-    subprocess.run(['sudo', 'mkdir', '-p', '/opt/ethpillar/el-cl-genesis-data'], check=True)
-    # Clean up existing directory if it exists
-    if os.path.exists('/tmp/network_config'):
-        shutil.rmtree('/tmp/network_config')
-    subprocess.run(['git', 'clone', url, '/tmp/network_config'])
-    os.chdir('/tmp/network_config')
-    # Add execute permissions to decompress.sh
-    subprocess.run(['chmod', '+x', './decompress.sh'])
-    # Use bash explicitly to run the script
-    subprocess.run(['bash', './decompress.sh'])
-    # Use sudo to copy files
-    print(f'copy custom genesis file to /opt/ethpillar/el-cl-genesis-data')
-    subprocess.run(['sudo', 'cp', 'besu.json', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'genesis.ssz', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'config.yaml', '/opt/ethpillar/el-cl-genesis-data/'])
-    shutil.rmtree('/tmp/network_config')
-    # Restore original working directory
-    os.chdir(original_dir)
-
-    
 # Initialize sync urls for selected network
 if eth_network == "mainnet":
     sync_urls = mainnet_sync_urls
@@ -334,12 +291,6 @@ elif eth_network == "sepolia":
     sync_urls = sepolia_sync_urls
 elif eth_network == "ephemery":
     sync_urls = ephemery_sync_urls
-elif eth_network == "endurance":
-    download_endurance_config("https://github.com/OpenFusionist/network_config")
-    sync_urls = endurance_sync_urls
-elif eth_network == "endurance_devnet":
-    download_endurance_config("https://github.com/OpenFusionist/devnet_network_config")
-    sync_urls = endurance_devnet_sync_urls
 
 # Use a random sync url
 sync_url = random.choice(sync_urls)[1]
@@ -393,8 +344,6 @@ def install_mevboost():
             exit(1)
 
         # Download the latest release binary
-        # TODO: Use a custom version to support reading a custom genesis-fork-version.  Wait for the RC version release before updating.
-        download_url = f"https://github.com/flashbots/mev-boost/releases/download/v1.9-rc2/mev-boost_1.9-rc2_{platform_arch.lower()}_{binary_arch}.tar.gz"
         print(f">> Downloading mevboost > URL: {download_url}")
 
         try:
@@ -426,57 +375,43 @@ def install_mevboost():
 
         ##### MEV Boost Service File
         mev_boost_service_file_lines = [
-            '[Unit]',
-            f'Description=MEV-Boost Service for {eth_network.upper()}',
-            'Wants=network-online.target',
-            'After=network-online.target',
-            'Documentation=https://www.coincashew.com',
-            '',
-            '[Service]',
-            'User=mevboost',
-            'Group=mevboost',
-            'Type=simple',
-            'Restart=always',
-            'RestartSec=5',
-            'ExecStart=/usr/local/bin/mev-boost -relay-check\\'
+        '[Unit]',
+        f'Description=MEV-Boost Service for {eth_network.upper()}',
+        'Wants=network-online.target',
+        'After=network-online.target',
+        'Documentation=https://www.coincashew.com',
+        '',
+        '[Service]',
+        'User=mevboost',
+        'Group=mevboost',
+        'Type=simple',
+        'Restart=always',
+        'RestartSec=5',
+        'ExecStart=/usr/local/bin/mev-boost \\',
+        f'    -{eth_network} \\',
+        f'    -min-bid {MEV_MIN_BID} \\',
+        '    -relay-check \\',
         ]
 
-        # Add custom endurance network parameters
-        if eth_network == 'endurance_devnet':
-            mev_boost_service_file_lines.extend([
-                '    -genesis-fork-version 0x10000001 \\',
-                '    -genesis-timestamp 1705568400 \\'
-            ])
+        if eth_network == 'mainnet':
+            relay_options=mainnet_relay_options
+        elif eth_network == 'holesky':
+            relay_options=holesky_relay_options
         else:
-            # Standard network configuration
-            mev_boost_service_file_lines.extend([
-                f'    -{eth_network} \\'
-            ])
-            
-            # Add network-specific relay options
-        relay_options = {
-            'mainnet': mainnet_relay_options,
-            'holesky': holesky_relay_options,
-            'sepolia': sepolia_relay_options,
-            'endurance_devnet': endurance_devnet_relay_options
-        }.get(eth_network, sepolia_relay_options)
+            relay_options=sepolia_relay_options
 
-        # Add relay URLs
-        for idx, relay in enumerate(relay_options):
-            is_last_relay = idx == len(relay_options) - 1
-            relay_line = f'    -relay {relay["url"]}'
-            if not is_last_relay:
-                relay_line += ' \\'
+        for relay in relay_options:
+            relay_line = f'    -relay {relay["url"]} \\'
             mev_boost_service_file_lines.append(relay_line)
 
-        # Add service installation section
+        # Remove the trailing '\\' from the last relay line
+        mev_boost_service_file_lines[-1] = mev_boost_service_file_lines[-1].rstrip(' \\')
+
         mev_boost_service_file_lines.extend([
             '',
             '[Install]',
-            'WantedBy=multi-user.target'
+            'WantedBy=multi-user.target',
         ])
-
-        # Join all lines with newlines
         mev_boost_service_file = '\n'.join(mev_boost_service_file_lines)
 
         mev_boost_temp_file = 'mev_boost_temp.service'
@@ -555,22 +490,11 @@ def download_and_install_besu():
         # Move the binary to /usr/local/bin using sudo
         os.system(f"sudo mv {extracted_folder} ~/besu")
         os.system(f"sudo mv ~/besu /usr/local/bin/besu")
-        # Set ownership of Besu directory to execution user
-        # fix: /usr/local/bin/besu/VERSION_METADATA.json (Permission denied)
-        os.system("sudo chown -R execution:execution /usr/local/bin/besu")
 
         # Remove the besu.tar.gz file
         os.remove('besu.tar.gz')
 
         ##### BESU SERVICE FILE ###########
-        besu_exec_flag = f''' --p2p-port={EL_P2P_PORT} --rpc-http-port={EL_RPC_PORT} --engine-rpc-port=8551 --max-peers={EL_MAX_PEER_COUNT} --metrics-enabled=true --metrics-port=6060 --rpc-http-enabled=true --sync-mode=SNAP --data-storage-format=BONSAI  --data-path=/var/lib/besu --engine-jwt-secret={JWTSECRET_PATH}'''
-
-        if eth_network == 'endurance':
-            besu_exec_flag = f'{besu_exec_flag} --bootnodes={EL_BOOTNODES} --network-id=648 --genesis-file=/opt/ethpillar/el-cl-genesis-data/besu.json'
-        elif eth_network == 'endurance_devnet':
-            besu_exec_flag = f'{besu_exec_flag} --bootnodes={ENDURANCE_DEVNET_EL_BOOTNODES} --network-id=6480000002 --genesis-file=/opt/ethpillar/el-cl-genesis-data/besu.json'
-        else:
-            besu_exec_flag = f'{besu_exec_flag} --network={eth_network}'
         besu_service_file = f'''[Unit]
 Description=Besu Execution Layer Client service for {eth_network.upper()}
 After=network-online.target
@@ -585,8 +509,9 @@ Restart=on-failure
 RestartSec=3
 KillSignal=SIGINT
 TimeoutStopSec=900
-Environment="JAVA_OPTS=-Xmx16g"
-ExecStart=/usr/local/bin/besu/bin/besu {besu_exec_flag}
+Environment="JAVA_OPTS=-Xmx5g"
+ExecStart=/usr/local/bin/besu/bin/besu --network={eth_network} --p2p-port={EL_P2P_PORT} --rpc-http-port={EL_RPC_PORT} --engine-rpc-port=8551 --max-peers={EL_MAX_PEER_COUNT} --metrics-enabled=true --metrics-port=6060 --rpc-http-enabled=true --sync-mode=SNAP --data-storage-format=BONSAI --data-path="/var/lib/besu" --engine-jwt-secret={JWTSECRET_PATH}
+
 [Install]
 WantedBy=multi-user.target
 '''
@@ -682,13 +607,6 @@ def install_teku():
         else:
             _feeparameters=''
 
-        if eth_network == 'endurance':
-            _network_params = f'--network=/opt/ethpillar/el-cl-genesis-data/config.yaml --p2p-discovery-bootnodes={CL_BOOTNODES} --p2p-static-peers={CL_STATICPEERS} --checkpoint-sync-url={sync_url} --ignore-weak-subjectivity-period-enabled'
-        elif eth_network == 'endurance_devnet':
-            _network_params = f'--network=/opt/ethpillar/el-cl-genesis-data/config.yaml --p2p-discovery-bootnodes={ENDURANCE_DEVNET_CL_BOOTNODES} --p2p-static-peers={ENDURANCE_DEVNET_CL_STATICPEERS} --checkpoint-sync-url={sync_url} --ignore-weak-subjectivity-period-enabled'
-        else:
-            _network_params = f'--network={eth_network}'
-
         ########### Teku SERVICE FILE #############
         teku_service_file = f'''[Unit]
 Description=Teku Beacon Node Consensus Client service for {eth_network.upper()}
@@ -704,9 +622,9 @@ Restart=on-failure
 RestartSec=3
 KillSignal=SIGINT
 TimeoutStopSec=900
-Environment=JAVA_OPTS=-Xmx16g
+Environment=JAVA_OPTS=-Xmx6g
 Environment=TEKU_OPTS=-XX:-HeapDumpOnOutOfMemoryError
-ExecStart=/usr/local/bin/teku/bin/teku {_network_params} --data-path=/var/lib/teku --data-storage-mode=minimal --ee-endpoint=http://127.0.0.1:8551 --ee-jwt-secret-file={JWTSECRET_PATH} --rest-api-enabled=true --rest-api-port={CL_REST_PORT} --p2p-port={CL_P2P_PORT} --p2p-peer-upper-bound={CL_MAX_PEER_COUNT} --metrics-enabled=true --metrics-port=8008 {_feeparameters} {_mevparameters}
+ExecStart=/usr/local/bin/teku/bin/teku --network={eth_network} --data-path=/var/lib/teku --data-storage-mode=minimal --initial-state={sync_url} --ee-endpoint=http://127.0.0.1:8551 --ee-jwt-secret-file={JWTSECRET_PATH} --rest-api-enabled=true --rest-api-port={CL_REST_PORT} --p2p-port={CL_P2P_PORT} --p2p-peer-upper-bound={CL_MAX_PEER_COUNT} --metrics-enabled=true --metrics-port=8008 {_feeparameters} {_mevparameters}
 
 [Install]
 WantedBy=multi-user.target
@@ -744,7 +662,6 @@ def install_teku_validator():
         subprocess.run(['sudo', 'useradd', '--no-create-home', '--shell', '/bin/false', 'validator'])
         subprocess.run(['sudo', 'chown', '-R', 'validator:validator', '/var/lib/teku_validator'])
 
-# ref: https://docs.teku.consensys.io/reference/cli/subcommands/validator-client#network use network=auto fetch the network configuration from the beacon node endpoint directly
         teku_validator_file = f'''[Unit]
 Description=Teku Validator Client service for {eth_network.upper()}
 Wants=network-online.target
@@ -759,7 +676,7 @@ Restart=on-failure
 RestartSec=3
 KillSignal=SIGINT
 TimeoutStopSec=900
-ExecStart=/usr/local/bin/teku/bin/teku validator-client --network=auto --data-path=/var/lib/teku_validator --validator-keys=/var/lib/teku_validator/validator_keys:/var/lib/teku_validator/validator_keys --metrics-enabled=true --metrics-port=8009 --validators-graffiti={GRAFFITI} {_beaconnodeparameters} {_feeparameters} {_mevparameters}
+ExecStart=/usr/local/bin/teku/bin/teku validator-client --network={eth_network} --data-path=/var/lib/teku_validator --validator-keys=/var/lib/teku_validator/validator_keys:/var/lib/teku_validator/validator_keys --metrics-enabled=true --metrics-port=8009 --validators-graffiti={GRAFFITI} {_beaconnodeparameters} {_feeparameters} {_mevparameters}
 
 [Install]
 WantedBy=multi-user.target
