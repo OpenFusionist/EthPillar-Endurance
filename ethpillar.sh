@@ -1283,10 +1283,8 @@ function checkV1StakingSetup(){
 function installNode(){
   if [[ ! -f /etc/systemd/system/consensus.service && ! -f /etc/systemd/system/validator.service ]]; then
           _CLIENTCOMBO=$(whiptail --title "Choose your consensus and execution clients" --menu \
-          "Pick your combination:" 10 78 3 \
-          "Nimbus-Nethermind" "lightweight. secure. easy to use. nim and .net" \
+          "Pick your combination:" 10 78 1 \
           "Nimbus-Reth" "lightweight. secure. easy to use. nim and reth" \
-          "Teku-Besu" "ephemery testnet ready. enterprise grade. java" \
           3>&1 1>&2 2>&3)
           case $_CLIENTCOMBO in
           Nimbus-Nethermind)
