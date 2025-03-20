@@ -46,7 +46,7 @@ clear_screen()  # Call the function to clear the screen
 valid_networks = ['ENDURANCE']
 valid_exec_clients = ['RETH']
 valid_consensus_clients = ['NIMBUS']
-valid_install_configs = ['Solo Staking Node', 'Full Node Only', 'Lido CSM Staking Node', 'Lido CSM Validator Client Only' ,'Validator Client Only', 'Failover Staking Node']
+valid_install_configs = ['Solo Staking Node', 'Full Node Only']
 
 # Load environment variables from env file
 load_dotenv("env")
