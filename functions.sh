@@ -199,6 +199,9 @@ getNetwork(){
     17000)
       NETWORK="Holesky"
       ;;
+    560048)
+      NETWORK="Hoodi"
+      ;;
     11155111)
       NETWORK="Sepolia"
       ;;
@@ -262,7 +265,7 @@ getPubKeys(){
    local ARGUMENT=${1:-"default"}
    case $VC in
       Lighthouse)
-         TEMP=$(/usr/local/bin/lighthouse account validator list --datadir /var/lib/lighthouse | grep -Eo '0x[a-fA-F0-9]{96}')
+         TEMP=$(sudo /usr/local/bin/lighthouse account validator list --datadir /var/lib/lighthouse | grep -Eo '0x[a-fA-F0-9]{96}')
          convertLIST
       ;;
       Lodestar)
@@ -749,13 +752,15 @@ createBeaconChainDashboardLink(){
     getPubKeys
     getIndices
     local _ids=$(echo ${INDICES[@]} | sed  's/ /,/g')
-    case $NETWORK in
+    case ${NETWORK,,} in
        holesky)
           _link="https://holesky.beaconcha.in/dashboard?validators=" ;;
        mainnet)
           _link="https://beaconcha.in/dashboard?validators=" ;;
        ephemery)
           _link="https://beaconchain.ephemery.dev/dashboard?validators=" ;;
+       hoodi)
+          _link="https://hoodi.beaconcha.in/dashboard?validators=" ;;
        *)
           echo "Unsupported Network: ${NETWORK}" && exit 1
     esac
@@ -794,7 +799,7 @@ testYetAnotherBenchScript(){
     echo "  * Bandwidth should be at least 10Mbit/s upload and 10Mbit/s download"
     echo "  * At least 2TB data transfer per month"
     echo "- Disk:"
-    echo "  * Capacity at least 2TB Mainnet, 300GB Holesky testnet, 3GB Ephemery testnet"
+    echo "  * Capacity at least 2TB Mainnet, 50GB Hoodi testnet, 3GB Ephemery testnet"
     echo "  * NVME drive preferred, SSD with TLC cache can work"
     echo "  * I/O Per Second on 4k block size test at least 15K IOPS read, 5K IOPS write"
     echo "- CPU:"
@@ -989,6 +994,7 @@ checkValidatorQueue(){
     declare -A BEACONCHAIN_URLS=()
     BEACONCHAIN_URLS["Mainnet"]="https://beaconcha.in"
     BEACONCHAIN_URLS["Holesky"]="https://holesky.beaconcha.in"
+    BEACONCHAIN_URLS["Hoodi"]="https://hoodi.beaconcha.in"
     BEACONCHAIN_URLS["Ephemery"]="https://beaconchain.ephemery.dev"
     BEACONCHAIN_URLS["Endurance Devnet"]="https://beacon.fusionist.io"
     BEACONCHAIN_URLS["Endurance Mainnet"]="https://beacon.fusionist.io"
@@ -1130,4 +1136,28 @@ CPU Load Avg Check :   <$cpu_threshold Normal,  >$cpu_threshold Caution,  >$cpus
 CPU Load Average : $(uptime | awk -F'load average:' '{ print $2 }' | cut -f1 -d,)
 CPU Heath Status : $(uptime | awk -F'load average:' '{ print $2 }' | cut -f1 -d, | awk -v num="$cpu_threshold" -v num2="$cpus" '{if ($1 < num) print "✅ Normal"; else if ($1 > num2) print "❌ Unhealthy"; else print "⚠️ Caution"}')
 EOF
+}
+
+# Explain Validator Actions and Topup features
+showValidatorActions(){
+    local VA_PATH="/en/validator-actions"
+    local TOPUP_PATH="/en/top-up"
+    declare -A VALIDATOR_ACTION_URLS=()
+    VALIDATOR_ACTION_URLS["Mainnet"]="https://launchpad.ethereum.org"
+    VALIDATOR_ACTION_URLS["Hoodi"]="https://hoodi.launchpad.ethereum.org"
+    VALIDATOR_ACTION_URLS["Holesky"]="https://holesky.launchpad.ethereum.org"
+    VALIDATOR_ACTION_URLS["Ephemery"]="https://launchpad.ephemery.dev"
+    local VA_URL=${VALIDATOR_ACTION_URLS["${NETWORK}"]}${VA_PATH}
+    local TOPUP_URL=${VALIDATOR_ACTION_URLS["${NETWORK}"]}${TOPUP_PATH}
+    local MSG="Visit the link below with your browser and connect your withdrawal address wallet to
+
+- upgrade to compounding validator (0x02),
+- consolidate validator(s),
+- make a partial withdrawal,
+- top up / add ETH to validator balance,
+- force an exit
+
+Actions: $VA_URL
+  TopUp: $TOPUP_URL"
+    whiptail --title "Validator Actions: New features since Pectra Upgrade" --msgbox "$MSG" 18 78
 }

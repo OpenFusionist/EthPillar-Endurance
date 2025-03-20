@@ -48,39 +48,33 @@ function resyncClient(){
 		getNetwork
 		case $NETWORK in
 		Holesky)
-			URL="https://holesky.beaconstate.ethstaker.cc"
+			_checkpointsync="--network=holesky --trusted-node-url=https://holesky.beaconstate.ethstaker.cc"
 			;;
 		Mainnet)
-			URL="https://beaconstate.ethstaker.cc"
+			_checkpointsync="--network=mainnet --trusted-node-url=https://beaconstate.ethstaker.cc"
 			;;
 		Sepolia)
-			URL="https://sepolia.beaconstate.info"
+			_checkpointsync="--network=sepolia --trusted-node-url=https://sepolia.beaconstate.info"
 			;;
 		Ephemery)
-			URL="https://ephemery.beaconstate.ethstaker.cc"
+			_checkpointsync="--network=/opt/ethpillar/testnet --trusted-node-url=https://ephemery.beaconstate.ethstaker.cc"
+			;;
+		Hoodi)
+			_checkpointsync="--network=/opt/ethpillar/testnet --trusted-node-url=https://checkpoint-sync.hoodi.ethpandaops.io"
 			;;
 		"Endurance Mainnet")
-			URL="https://checkpointz.fusionist.io"
+			_checkpointsync="--network=/opt/ethpillar/el-cl-genesis-data --trusted-node-url=https://checkpointz.fusionist.io"
 			;;
 		"Endurance Devnet")
-			URL="http://78.46.91.61:9781"
+			_checkpointsync="--network=/opt/ethpillar/el-cl-genesis-data --trusted-node-url=http://78.46.91.61:9781"
 			;;
 		esac
 
 		sudo systemctl stop consensus
 		sudo rm -rf /var/lib/nimbus/db
 
-		# Set network configuration
-		NETWORK_LOWER=$(echo $NETWORK | tr '[:upper:]' '[:lower:]')
-		NETWORK_CONFIG=$NETWORK_LOWER
-		if [[ "$NETWORK_LOWER" == "endurance mainnet" || "$NETWORK_LOWER" == "endurance devnet" ]]; then
-			echo "For Endurance network, using custom network config: /opt/ethpillar/el-cl-genesis-data"
-			NETWORK_CONFIG="/opt/ethpillar/el-cl-genesis-data"
-		fi
-
 		sudo -u consensus /usr/local/bin/nimbus_beacon_node trustedNodeSync \
-		--network=$NETWORK_CONFIG \
-		--trusted-node-url=$URL \
+		"${_checkpointsync}" \
 		--data-dir=/var/lib/nimbus \
 		--backfill=false
 

@@ -30,6 +30,10 @@ endurance_relay_options = [
     {'name': 'mainnet-us', 'url': 'https://0x8aaa802de39ce9ab3f0fe937681bff1ec325894a5471ead6dd91c2e7465cf26a3a9cd24478837fe24fac957e014aa3bb@relay-us.endurancehub.org'}
 ]
 
+hoodi_relay_options = [
+    {'name': 'Flashbots', 'url': 'https://placeholder@boost-relay-hoodi.flashbots.net'}
+]
+
 # Checkpoint-Sync Data
 mainnet_sync_urls = [
     ("ETHSTAKER", "https://beaconstate.ethstaker.cc"),
@@ -58,7 +62,6 @@ sepolia_sync_urls = [
 
 ephemery_sync_urls = [
     ("ETHSTAKER", "https://ephemery.beaconstate.ethstaker.cc"),
-    ("Bordel", "https://checkpointz.bordel.wtf"),
     ("EF DevOps", "https://checkpoint-sync.ephemery.ethpandaops.io"),
 ]
 
@@ -68,4 +71,9 @@ endurance_sync_urls = [
 
 endurance_devnet_sync_urls = [
     ("Endurance-Devnet", "http://78.46.91.61:9781/"),
+]
+
+hoodi_sync_urls = [
+    ("EF DevOps", "https://checkpoint-sync.hoodi.ethpandaops.io"),
+    ("ATTESTANT", "https://hoodi-checkpoint-sync.attestant.io"),
 ]
