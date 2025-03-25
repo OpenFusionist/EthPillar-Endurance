@@ -1,8 +1,10 @@
 # 🛡️ EthPillar: one-liner setup tool and node management TUI
 
-  Empowered, inspired, home staker. Free. Open source. Public goods for
-  Ethereum. ARM64 and AMD64 support. Lido CSM Compatible. Jumpstart your ETH
-  solo-staking / Lido CSM journey.
+>This is a fork version specifically designed for the Endurance network, with added support for the nimbus-reth client.
+
+Empowered, inspired, home staker. Free. Open source. Public goods for
+Ethereum. ARM64 and AMD64 support. Lido CSM Compatible. Jumpstart your ETH
+solo-staking / Lido CSM journey.
   
 <figure><img src="https://github.com/coincashew/coincashew/raw/master/.gitbook/assets/EthPillar.final.png" alt=""><figcaption></figcaption></figure>
 
