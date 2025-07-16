@@ -387,8 +387,7 @@ def install_mevboost():
             exit(1)
 
         # Download the latest release binary
-        # TODO: Use a custom version to support reading a custom genesis-fork-version.  Wait for the RC version release before updating.
-        download_url = f"https://github.com/flashbots/mev-boost/releases/download/v1.9-rc2/mev-boost_1.9-rc2_{platform_arch.lower()}_{binary_arch}.tar.gz"
+        download_url = f"https://github.com/flashbots/mev-boost/releases/download/v1.9/mev-boost_1.9_{platform_arch.lower()}_{binary_arch}.tar.gz"
         print(f">> Downloading mevboost > URL: {download_url}")
 
         try:
