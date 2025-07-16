@@ -21,6 +21,7 @@ git clone --depth 1 "$REPO_URL" "$TMP_DIR"
 # Run decompress script if present
 if [[ -f "$TMP_DIR/decompress.sh" ]]; then
   chmod +x "$TMP_DIR/decompress.sh"
+  echo "[INFO] Running decompress.sh"
   (cd "$TMP_DIR" && bash ./decompress.sh)
 fi
 
