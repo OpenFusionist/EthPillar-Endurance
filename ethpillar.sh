@@ -452,7 +452,6 @@ while true; do
       21 "Uninstall node"
       22 "Reinstall node: Change installation type, network"
       23 "Override environment variables"
-      24 "Update Endurance network config"
       - ""
       99 "Back to main menu"
     )
@@ -538,9 +537,6 @@ while true; do
         "${EDITOR}" .env.overrides
         # Reload environment variables overrides
         [[ -f ./.env.overrides ]] && source ./.env.overrides
-        ;;
-      24)
-        runScript update_endurance_config.sh
         ;;
       99)
         break
