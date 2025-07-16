@@ -26,7 +26,7 @@ function uninstallPlugins(){
 		sudo systemctl disable csm_nimbusvalidator
 		sudo rm /etc/systemd/system/csm_nimbusvalidator.service
 		sudo userdel csm_nimbus_validator
-		sudo rm -rf /opt/ethpillar/plugin-csm;
+		sudo rm -rf /opt/ethpillar/plugin-csm
 	fi
 	if [[ -d /opt/ethpillar/plugin-sentinel ]]; then
 		sudo docker stop csm-sentinel
@@ -34,6 +34,27 @@ function uninstallPlugins(){
 		sudo docker rmi csm-sentinel
 		sudo docker volume rm csm-sentinel-persistent
 		sudo rm -rf /opt/ethpillar/plugin-sentinel
+	fi
+	if [[ -d /opt/ethpillar/plugin-dora ]]; then
+		sudo systemctl stop dora
+		sudo systemctl disable dora
+		sudo rm /etc/systemd/system/dora.service
+		sudo userdel dora
+		sudo rm -rf /opt/ethpillar/plugin-dora
+	fi
+	if [[ -d /opt/ethpillar/plugin-client-stats ]]; then
+		sudo systemctl stop client-stats
+		sudo systemctl disable client-stats
+		sudo rm /etc/systemd/system/client-stats.service
+		sudo userdel client-stats
+		sudo rm -rf /opt/ethpillar/plugin-client-stats
+	fi
+	if [[ -d /opt/ethpillar/plugin-contributoor ]]; then
+		sudo systemctl stop contributoor
+		sudo systemctl disable contributoor
+		sudo rm /etc/systemd/system/contributoor.service
+		sudo userdel contributoor
+		sudo rm -rf /opt/ethpillar/plugin-contributoor
 	fi
 }
 
@@ -51,6 +72,8 @@ function cleanupMisc(){
 	if [[ -f /usr/local/bin/eth-duties ]]; then sudo rm /usr/local/bin/eth-duties; fi
 	if [[ -f /usr/local/bin/ethdo ]]; then sudo rm /usr/local/bin/ethdo; fi
 	if [[ -f $BASE_DIR/.env.overrides ]]; then sudo rm $BASE_DIR/.env.overrides; fi
+	if [[ -d /opt/ethpillar/testnet ]]; then sudo rm -rf /opt/ethpillar/testnet; fi
+	if [[ -d /opt/ethpillar/patches ]]; then sudo rm -rf /opt/ethpillar/patches; fi
 }
 
 function uninstallCL(){
@@ -123,6 +146,7 @@ function uninstallVC(){
 
 		#Lighthouse
 		sudo rm -rf /var/lib/lighthouse/validators
+		sudo rm -rf /var/lib/lighthouse_validator
 
 		#Lodestar
 		sudo rm -rf /var/lib/lodestar/validators
@@ -152,21 +176,4 @@ function uninstallMevboost(){
 	fi
 }
 
-function setWhiptailColors(){
-    export NEWT_COLORS='root=,black
-border=green,black
-title=green,black
-roottext=red,black
-window=red,black
-textbox=white,black
-button=black,green
-compactbutton=white,black
-listbox=white,black
-actlistbox=black,white
-actsellistbox=black,green
-checkbox=green,black
-actcheckbox=black,green'
-}
-
-setWhiptailColors
 promptYesNo

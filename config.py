@@ -30,6 +30,13 @@ endurance_relay_options = [
     {'name': 'mainnet-us', 'url': 'https://0x8aaa802de39ce9ab3f0fe937681bff1ec325894a5471ead6dd91c2e7465cf26a3a9cd24478837fe24fac957e014aa3bb@relay-us.endurancehub.org'}
 ]
 
+hoodi_relay_options = [
+    {'name': 'Titan Relay', 'url': 'https://0xaa58208899c6105603b74396734a6263cc7d947f444f396a90f7b7d3e65d102aec7e5e5291b27e08d02c50a050825c2f@hoodi.titanrelay.xyz'},
+    {'name': 'Flashbots', 'url': 'https://0xafa4c6985aa049fb79dd37010438cfebeb0f2bd42b115b89dd678dab0670c1de38da0c4e9138c9290a398ecd9a0b3110@boost-relay-hoodi.flashbots.net'},
+    {'name': 'bloXroute', 'url': 'https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.hoodi.blxrbdn.com'},
+    {'name': 'Aestus', 'url': 'https://0x98f0ef62f00780cf8eb06701a7d22725b9437d4768bb19b363e882ae87129945ec206ec2dc16933f31d983f8225772b6@hoodi.aestus.live'}
+]
+
 # Checkpoint-Sync Data
 mainnet_sync_urls = [
     ("ETHSTAKER", "https://beaconstate.ethstaker.cc"),
@@ -44,7 +51,6 @@ mainnet_sync_urls = [
 ]
 
 holesky_sync_urls = [
-    ("ETHSTAKER", "https://holesky.beaconstate.ethstaker.cc"),
     ("BEACONSTATE", "https://holesky.beaconstate.info"),
     ("EF DevOps", "https://checkpoint-sync.holesky.ethpandaops.io"),
     ("Lodestar", "https://beaconstate-holesky.chainsafe.io"),
@@ -58,7 +64,6 @@ sepolia_sync_urls = [
 
 ephemery_sync_urls = [
     ("ETHSTAKER", "https://ephemery.beaconstate.ethstaker.cc"),
-    ("Bordel", "https://checkpointz.bordel.wtf"),
     ("EF DevOps", "https://checkpoint-sync.ephemery.ethpandaops.io"),
 ]
 
@@ -68,4 +73,9 @@ endurance_sync_urls = [
 
 endurance_devnet_sync_urls = [
     ("Endurance-Devnet", "http://78.46.91.61:9781/"),
+]
+
+hoodi_sync_urls = [
+    ("EF DevOps", "https://checkpoint-sync.hoodi.ethpandaops.io"),
+    ("ATTESTANT", "https://hoodi-checkpoint-sync.attestant.io"),
 ]

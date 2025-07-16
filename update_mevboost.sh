@@ -27,6 +27,8 @@ function getCurrentVersion(){
 }
 
 function promptYesNo(){
+	# Remove front v if present
+	[[ "${VERSION#v}" == "${TAG#v}" ]] && whiptail --title "Already updated" --msgbox "You are already on the latest version: $VERSION" 10 78 && return
     if whiptail --title "Update mevboost" --yesno "Installed Version is: $VERSION\nLatest Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update to $TAG?" 15 78; then
   		updateClient
   		promptViewLogs
@@ -43,6 +45,8 @@ function getLatestVersion(){
     TAG_URL="https://api.github.com/repos/flashbots/mev-boost/releases/latest"
 	#Get tag name and remove leading 'v'
 	TAG=$(curl -s $TAG_URL | jq -r .tag_name | sed 's/.*v\([0-9]*\.[0-9]*\).*/\1/')
+	# Exit in case of null tag
+	[[ -z $TAG ]] || [[ $TAG == "null"  ]] && echo "ERROR: Couldn't find the latest version tag" && exit 1
 	CHANGES_URL="https://github.com/flashbots/mev-boost/releases"
 }
 
@@ -64,7 +68,6 @@ function updateClient(){
 	sudo systemctl start mevboost
 }
 
-setWhiptailColors
 getCurrentVersion
 getLatestVersion
 promptYesNo

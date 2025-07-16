@@ -27,7 +27,7 @@ fi
 # Variables
 GITHUB_URL=https://api.github.com/repos/TobiWo/eth-duties/releases/latest
 GITHUB_RELEASE_NODES=https://github.com/TobiWo/eth-duties/releases
-RELEASE_SUFFIX="ubuntu2204-${_arch}.tar.gz"
+RELEASE_SUFFIX="ubuntu22.04-${_arch}.tar.gz"
 DESCRIPTION="eth-duties logs upcoming validator duties to the console. Developed mainly for home stakers."
 DOCUMENTATION=https://tobiwo.github.io/eth-duties
 SOURCE_CODE=https://github.com/TobiWo/eth-duties
@@ -45,6 +45,8 @@ function upgradeBinaries(){
 # Gets latest tag
 function getLatestVersion(){
 	TAG=$(curl -s $GITHUB_URL | jq -r .tag_name )
+	# Exit in case of null tag
+	[[ -z $TAG ]] || [[ $TAG == "null"  ]] && echo "ERROR: Couldn't find the latest version tag" && exit 1
 }
 
 # Downloads latest release

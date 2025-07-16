@@ -12,10 +12,10 @@
 # 🙌 Ask questions on Discord:
 #    * https://discord.gg/dEpAVWgFNB
 
-EP_VERSION="3.1.4"
+EP_VERSION="5.0.0"
 
 # Default text editor
-EDITOR="nano"
+export EDITOR="nano"
 
 # VARIABLES
 export BASE_DIR="$HOME/git/ethpillar" && cd $BASE_DIR
@@ -38,29 +38,43 @@ export EL_RPC_ENDPOINT="${EL_IP_ADDRESS}:${EL_RPC_PORT}"
 # Get machine info
 _platform=$(get_platform)
 _arch=$(get_arch)
+export _platform _arch
 
 menuMain(){
 
+# Define systemctl services
+_SERVICES=("execution" "consensus" "validator" "mevboost" "csm_nimbusvalidator")
+_SERVICES_NAME=("Execution Client" "Consensus Client" "Validator Client" "MEV-Boost" "CSM Nimbus Validator Plugin")
+_SERVICES_ICON=("🔗" "🧠" "🚀" "⚡" "💧")
+
+function testAndServiceCommand() {
+  for _service in "${_SERVICES[@]}"; do
+    test -f /etc/systemd/system/"${_service}".service && sudo service "${_service}" "$1"
+  done
+}
+
+function buildMenu() {
+  for (( i=0; i<${#_SERVICES[@]}; i++ )); do
+    test -f /etc/systemd/system/"${_SERVICES[i]}".service && OPTIONS+=("${_SERVICES_ICON[i]}" "${_SERVICES_NAME[i]}")
+  done
+}
 # Define the options for the main menu
 OPTIONS=(
-  1 "View Logs (Exit: CTRL+B D)"
+  📈 "Logging & Monitoring"
+  🛡️ "Security & Node Checks"
   - ""
 )
-test -f /etc/systemd/system/execution.service && OPTIONS+=(2 "Execution Client")
-test -f /etc/systemd/system/consensus.service && OPTIONS+=(3 "Consensus Client")
-test -f /etc/systemd/system/validator.service && OPTIONS+=(4 "Validator Client")
-test -f /etc/systemd/system/mevboost.service && OPTIONS+=(5 "MEV-Boost")
-test -f /etc/systemd/system/csm_nimbusvalidator.service && OPTIONS+=(6 "CSM Nimbus Validator Plugin")
+buildMenu
 OPTIONS+=(
   - ""
-  10 "Start all clients"
-  11 "Stop all clients"
-  12 "Restart all clients"
+  ✅ "Start all clients"
+  🛑 "Stop all clients"
+  🔄 "Restart all clients"
   - ""
-  20 "System Administration"
-  21 "Toolbox"
-  22 "Plugins"
-  99 "Quit"
+  🖥️ "System Administration"
+  🛠️ "Toolbox"
+  🧩 "Plugins"
+  👋 "Quit"
 )
 
 while true; do
@@ -79,55 +93,162 @@ while true; do
 
     # Handle the user's choice
     case $CHOICE in
-      1)
-        runScript view_logs.sh
+      📈)
+        submenuLogsMonitoring
         ;;
-      2)
+      🛡️)
+        submenuSecurityNodeChecks
+        ;;
+      🔗)
         submenuExecution
         ;;
-      3)
+      🧠)
         submenuConsensus
         ;;
-      4)
+      🚀)
         submenuValidator
         ;;
-      5)
+      ⚡)
         submenuMEV-Boost
         ;;
-      6)
+      💧)
         submenuPluginCSMValidator
         ;;
-      10)
-        test -f /etc/systemd/system/execution.service && sudo service execution start
-        test -f /etc/systemd/system/consensus.service && sudo service consensus start
-        test -f /etc/systemd/system/validator.service && sudo service validator start
-        test -f /etc/systemd/system/mevboost.service && sudo service mevboost start
-        test -f /etc/systemd/system/csm_nimbusvalidator.service && sudo service csm_nimbusvalidator start
+      ✅)
+        testAndServiceCommand start
         ;;
-      11)
-        test -f /etc/systemd/system/execution.service && sudo service execution stop
-        test -f /etc/systemd/system/consensus.service && sudo service consensus stop
-        test -f /etc/systemd/system/validator.service && sudo service validator stop
-        test -f /etc/systemd/system/mevboost.service && sudo service mevboost stop
-        test -f /etc/systemd/system/csm_nimbusvalidator.service && sudo service csm_nimbusvalidator stop
+      🛑)
+        testAndServiceCommand stop
         ;;
-      12)
-        test -f /etc/systemd/system/execution.service && sudo service execution restart
-        test -f /etc/systemd/system/consensus.service && sudo service consensus restart
-        test -f /etc/systemd/system/validator.service && sudo service validator restart
-        test -f /etc/systemd/system/mevboost.service && sudo service mevboost restart
-        test -f /etc/systemd/system/csm_nimbusvalidator.service && sudo service csm_nimbusvalidator restart
+      🔄)
+        testAndServiceCommand restart
         ;;
-      20)
+      🖥️)
         submenuAdminstrative
         ;;
-      21)
+      🛠️)
         submenuTools
         ;;
-      22)
+      🧩)
         submenuPlugins
         ;;
-      99)
+      👋)
+        break
+        ;;
+    esac
+done
+}
+
+submenuLogsMonitoring(){
+while true; do
+    getBackTitle
+    # Define the options for the submenu
+    SUBOPTIONS=(
+      📊 "View Log Dashboard: Maximize window, see all. To exit, press CTRL+B D"
+      🔍 "View Rolling Consolidated Logs: All logs in one screen"
+      📜 "Export logs: Save logs to disk for further analysis or sharing"
+      🚨 "Monitoring: Observe Ethereum Metrics. Explore Dashboards. Grafana. Alerts."
+      - ""
+      👋 "Back to main menu"
+    )
+
+    # Display the submenu and get the user's choice
+    SUBCHOICE=$(whiptail --clear --cancel-button "Back" \
+      --backtitle "$BACKTITLE" \
+      --title "Logging & Monitoring" \
+      --menu "Choose one of the following options:" \
+      0 0 0 \
+      "${SUBOPTIONS[@]}" \
+      3>&1 1>&2 2>&3)
+
+    if [ $? -gt 0 ]; then # user pressed <Cancel> button
+        break
+    fi
+
+    # Handle the user's choice from the submenu
+    case $SUBCHOICE in
+      📊)
+        runScript view_logs.sh
+        ;;
+      🔍)
+        sudo bash -c 'journalctl -u validator -u consensus -u execution -u mevboost -u csm_nimbusvalidator --no-hostname -f | ccze -A'
+        ;;
+      📜)
+        export_logs
+        ;;
+      🚨)
+        # Install monitoring if not installed
+        [[ ! -f /etc/systemd/system/ethereum-metrics-exporter.service ]] && runScript ethereum-metrics-exporter.sh -i
+        submenuMonitoring
+        ;;
+      👋)
+        break
+        ;;
+    esac
+done
+}
+
+submenuSecurityNodeChecks(){
+while true; do
+    getBackTitle
+    # Define the options for the submenu
+    SUBOPTIONS=(
+      🛡️ "Node Checker: Automated security and health checks for your node"
+      🧱 "UFW Firewall: Control network traffic against unauthorized access"
+      🤗 "Peer Count: Show # peers connected to EL & CL"
+      🔄 "Port Checker: Test for Incoming Connections"
+      🥷 "Privacy: Clear bash shell history"
+      🛠️ "Unattended-upgrades: Automatically install security updates"
+      🔐 "Fail2Ban: Automatically protecting your node from common attack patterns"
+      🔒 "2FA: Secure your SSH access with two-factor authentication"
+      - ""
+      👋 "Back to main menu"
+    )
+
+    # Display the submenu and get the user's choice
+    SUBCHOICE=$(whiptail --clear --cancel-button "Back" \
+      --backtitle "$BACKTITLE" \
+      --title "Security & Node Checks" \
+      --menu "Choose one of the following options:" \
+      0 0 0 \
+      "${SUBOPTIONS[@]}" \
+      3>&1 1>&2 2>&3)
+
+    if [ $? -gt 0 ]; then # user pressed <Cancel> button
+        break
+    fi
+
+    # Handle the user's choice from the submenu
+    case $SUBCHOICE in
+      🛡️)
+        sudo bash -c './plugins/node-checker/run.sh'
+        ;;
+      🧱)
+        submenuUFW
+        ;;
+      🤗)
+        getPeerCount
+        ;;
+      🔐)
+        sudo bash -c './helpers/install_fail2ban.sh'
+        ;;
+      🛠️)
+        sudo bash -c './helpers/install_unattendedupgrades.sh'
+        ;;
+      🔒)
+        # Enable 2fa only if ssh keys are present, check current user
+        [[ ! $(grep -E '^ssh-([a-zA-Z0-9]+)' ~/.ssh/authorized_keys) ]] && whiptail --msgbox "⚠️ Please setup SSH key authentication first.\nAdd your public key to ~/.ssh/authorized_keys" 8 78 && return
+        runScript ./helpers/install_2fa.sh
+        ;;
+      🔄)
+        checkOpenPorts
+        ;;
+      🥷)
+        history -c && history -w
+        ohai "Cleared bash history"
+        sleep 3
+        ;;
+      👋)
         break
         ;;
     esac
@@ -282,13 +403,14 @@ while true; do
       - ""
       10 "Generate / Import Validator Keys"
       11 "View validator pubkeys and indices"
+      12 "🆕 Validator Actions: Compound/consolidate, partial withdrawals, top up, force exit"
       - ""
-      12 "Generate Voluntary Exit Messages (VEM)"
-      13 "Broadcast Voluntary Exit Messages (VEM)"
-      14 "Next withdrawal: See expected time, blocks to go"
-      15 "Check validator status, balance"
-      16 "Check validator entry/exit queue with beaconcha.in"
-      17 "Attestation Performance: Obtain information about attester inclusion"
+      20 "Generate Voluntary Exit Messages (VEM)"
+      21 "Broadcast Voluntary Exit Messages (VEM)"
+      22 "Next withdrawal: See expected time, blocks to go"
+      23 "Check validator status, balance"
+      24 "Check validator entry/exit queue with beaconcha.in"
+      25 "Attestation Performance: Obtain information about attester inclusion"
       - ""
       99 "Back to main menu"
     )
@@ -337,25 +459,28 @@ while true; do
         viewPubkeyAndIndices
         ;;
       12)
+        showValidatorActions
+        ;;
+      20)
         installEthdo
         generateVoluntaryExitMessage
         ;;
-      13)
+      21)
         installEthdo
         broadcastVoluntaryExitMessageLocally
         ;;
-      14)
+      22)
         installEthdo
         ethdoNextWithdrawalSweep
         ;;
-      15)
+      23)
         installEthdo
         checkValidatorStatus
         ;;
-      16)
+      24)
          checkValidatorQueue
          ;;
-      17)
+      25)
         installEthdo
         checkValidatorAttestationInclusion
         ;;
@@ -437,23 +562,23 @@ while true; do
     getBackTitle
     # Define the options for the submenu
     SUBOPTIONS=(
-      1 "Update system"
-      2 "Restart system"
-      3 "Shutdown system"
+      🛠️ "Update system"
+      🔄 "Restart system"
+      ⏻ "Shutdown system"
       - ""
-      4 "View software versions"
-      5 "View cpu/ram/disk/net (btop)"
-      6 "View general node information"
+      📦 "View software versions"
+      📊 "View cpu/ram/disk/net (btop)"
+      📋 "View general node information"
       - ""
-      10 "Update EthPillar"
-      11 "About EthPillar"
+      ⬆️ "Update EthPillar"
+      ℹ️ "About EthPillar"
       - ""
-      20 "Configure autostart"
-      21 "Uninstall node"
-      22 "Reinstall node: Change installation type, network"
-      23 "Override environment variables"
+      ⚙️ "Configure autostart"
+      🗑️ "Uninstall node"
+      🔁 "Reinstall node: Change installation type, network"
+      🔧 "Override environment variables"
       - ""
-      99 "Back to main menu"
+      👋 "Back to main menu"
     )
 
     # Display the submenu and get the user's choice
@@ -471,16 +596,16 @@ while true; do
 
     # Handle the user's choice from the submenu
     case $SUBCHOICE in
-      1)
+      🛠️)
         sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
         ;;
-      2)
+      🔄)
         if whiptail --title "Reboot" --defaultno --yesno "Are you sure you want to reboot?" 8 78; then sudo reboot now; fi
         ;;
-      3)
+      ⏻)
         if whiptail --title "Shutdown" --defaultno --yesno "Are you sure you want to shutdown?" 8 78; then sudo shutdown now; fi
         ;;
-      4)
+      📦)
         test -f /etc/systemd/system/validator.service && getClient && getCurrentVersion && VC="Validator client: $CLIENT $VERSION"
         test -f /etc/systemd/system/consensus.service && CL=$(curl -s -X GET "${API_BN_ENDPOINT}/eth/v1/node/version" -H "accept: application/json" | jq -r '.data.version')
         test -f /etc/systemd/system/execution.service && EL=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],"id":2}' ${EL_RPC_ENDPOINT} | jq -r '.result')
@@ -493,35 +618,68 @@ while true; do
         fi
         whiptail --title "Installed versions" --msgbox "Consensus client: ${CL}\nExecution client: ${EL}\n${VC}\n${MB}" 10 78
         ;;
-      5)
+      📊)
         # Install btop process monitoring
         if ! command -v btop &> /dev/null; then
             sudo apt-get install btop -y
         fi
-        btop
+        btop --utf-force
       ;;
-      6)
+     📋)
         print_node_info
       ;;
-      10)
-        cd $BASE_DIR ; git fetch origin main ; git checkout main ; git pull --ff-only ; git reset --hard ; git clean -xdf
-        whiptail --title "Updated EthPillar" --msgbox "Restart EthPillar for latest version." 10 78
+      ⬆️)
+        # Get current version
+        local current_version=$EP_VERSION
+        
+        # Fetch latest version from remote
+        cd "$BASE_DIR" || true
+        git fetch origin main
+        
+        # Get latest version from remote
+        latest_version=$(git show origin/main:ethpillar.sh | grep '^EP_VERSION=' | cut -d'"' -f2)
+        
+        # Format msgs
+        if [[ "$current_version" == "$latest_version" ]]; then
+          local MSG1="You are already on the latest version ($current_version).\n\nWould you like to pull the latest changes anyway?"
+          local MSG2="Restart EthPillar for latest version."
+        else
+          local MSG1="Current version: $current_version\nLatest version: $latest_version\n\nWould you like to update?"
+          local MSG2="Updated from $current_version to $latest_version.\nRestart EthPillar for latest version."
+        fi
+
+        # Prompt to update
+        if whiptail --title "EthPillar Update" --yesno "$MSG1" 10 78; then
+            # Backup .env.overrides if it exists
+            [[ -f .env.overrides ]] && cp .env.overrides /tmp/env.overrides.backup
+            
+            # Update to latest
+            git checkout main
+            git pull --ff-only
+            git reset --hard
+            git clean -xdf
+            
+            # Restore .env.overrides if it was backed up
+            [[ -f /tmp/env.overrides.backup ]] && mv /tmp/env.overrides.backup .env.overrides
+            
+            whiptail --title "Updated EthPillar" --msgbox "$MSG2" 10 78
+        fi
         ;;
-      11)
-        MSG_ABOUT="🫰 Created as a Public Good by CoinCashew.eth since Pre-Genesis 2020
-        \n🫶 Make improvements and suggestions on GitHub: https://github.com/coincashew/ethpillar
-        \n🙌 Ask questions on Discord: https://discord.gg/dEpAVWgFNB
-        \nIf you'd like to support this public goods project, find us on the next Gitcoin Grants.
-        \nOur donation address is 0xCF83d0c22dd54475cC0C52721B0ef07d9756E8C0 or coincashew.eth"
-        whiptail --title "About EthPillar" --msgbox "$MSG_ABOUT" 20 78
+      ℹ️)
+        MSG_ABOUT="🏡🥩 Since Pre-Merge 2020,\n- EthPillar is a free, open source, public good.\n- Made for Ethereum. Built on-chain. Powered by community.
+        \n🚀 Get Involved: Make improvements & suggestions on GitHub\n- https://github.com/coincashew/ethpillar
+        \n📣 Join community & ask questions on Discord:\n- https://discord.gg/dEpAVWgFNB
+        \n✨ Support EthPillar on the next Gitcoin Grants round
+        \n🙏 Donations:\n[ 0xCF83d0c22dd54475cC0C52721B0ef07d9756E8C0 ] || [ coincashew.eth ]"
+        whiptail --title "About EthPillar" --msgbox "$MSG_ABOUT" 21 78
         ;;
-      20)
+      ⚙️)
         configureAutoStart
       ;;
-      21)
+      🗑️)
         runScript uninstall.sh
         ;;
-      22)
+      🔁)
         if whiptail --title "Reinstall EthPillar" --defaultno --yesno "Are you sure you want to reinstall?\nAll current node data will be removed." 9 78; then
            if runScript uninstall.sh; then
               installNode
@@ -529,7 +687,7 @@ while true; do
            fi
         fi
         ;;
-      23)
+      🔧)
         if [[ ! -f ${BASE_DIR}/.env.overrides ]]; then
            # Create from template
            cp .env.overrides.example .env.overrides
@@ -538,7 +696,7 @@ while true; do
         # Reload environment variables overrides
         [[ -f ./.env.overrides ]] && source ./.env.overrides
         ;;
-      99)
+      👋)
         break
         ;;
     esac
@@ -580,7 +738,7 @@ while true; do
     # Handle the user's choice from the submenu
     case $SUBCHOICE in
       1)
-        sudo bash -c 'journalctl -fu grafana-server -fu prometheus -fu ethereum-metrics-exporter -fu prometheus-node-exporter -n 100 | ccze -A'
+        sudo bash -c 'journalctl -u grafana-server -u prometheus -u ethereum-metrics-exporter -u prometheus-node-exporter --no-hostname -f | ccze -A'
         ;;
       2)
         sudo systemctl start grafana-server prometheus ethereum-metrics-exporter prometheus-node-exporter
@@ -825,6 +983,9 @@ while true; do
         fi
         sudo ufw allow 30303 comment 'Allow execution client port'
         sudo ufw allow 9000 comment 'Allow consensus client port'
+        getClient
+        [[ $CL == "Lighthouse" ]] && sudo ufw allow 9001/udp comment 'Allow consensus client QUIC port'
+        [[ $EL == "Reth" ]] && sudo ufw allow 30304/udp comment 'Allow execution client discv5 port'
         sudo ufw enable
         sudo ufw status numbered
         ohai "UFW firewall enabled."
@@ -861,6 +1022,46 @@ while true; do
         sudo ufw allow from $ip_whitelist
         ohai "IP address whitelisted."
         sleep 2
+        ;;
+      99)
+        break
+        ;;
+    esac
+done
+}
+
+submenuPerformanceTuning(){
+while true; do
+    getBackTitle
+    getNetworkConfig
+    # Define the options for the submenu
+    SUBOPTIONS=(
+      1 "Swappiness: Optimize pages between memory and the swap space"
+      2 "noatime: Reduced disk I/O and improved performance"
+      - ""
+      99 "Back to main menu"
+    )
+
+    # Display the submenu and get the user's choice
+    SUBCHOICE=$(whiptail --clear --cancel-button "Back" \
+      --backtitle "$BACKTITLE" \
+      --title "Performance Tuning" \
+      --menu "Choose one of the following options:" \
+      0 0 0 \
+      "${SUBOPTIONS[@]}" \
+      3>&1 1>&2 2>&3)
+
+    if [ $? -gt 0 ]; then # user pressed <Cancel> button
+        break
+    fi
+
+    # Handle the user's choice from the submenu
+    case $SUBCHOICE in
+      1)
+        sudo bash -c './helpers/set_swappiness.sh'
+        ;;
+      2)
+        sudo bash -c './helpers/set_noatime.sh'
         ;;
       99)
         break
@@ -1058,10 +1259,15 @@ while true; do
     getBackTitle
     # Define the options for the submenu
     SUBOPTIONS=(
-      1 "Lido CSM Validator: Activate an extra validator service. Re-use this node's EL/CL."
-      2 "CSM-Sentinel: Sends notifications for your CSM Node Operator ID. Self-hosted. Docker. Telegram."
+      🛡️ "Node Checker: Automated security and health checks for your node."
+      💧 "Lido CSM Validator: Activate an extra validator service. Re-use this node's EL/CL."
+      ⛑️ "CSM-Sentinel: Sends notifications for your CSM Node Operator ID. Self-hosted. Docker. Telegram."
+      🔎 "Dora the Explorer: lightweight beaconchain explorer. validator actions. self-hosted. private."
+      🔧 "eth-validator-cli by TobiWo: managing validators via execution layer requests"
+      🌈 "Prysm client-stats: collects metrics from CL & VC. publishes to beaconcha.in stats service"
+      🐼 "Contributoor: powerful monitoring & data-gathering tool. enhances network transparency"
       - ""
-      99 "Back to main menu"
+      👋 "Back to main menu"
     )
 
     # Display the submenu and get the user's choice
@@ -1079,7 +1285,10 @@ while true; do
 
     # Handle the user's choice from the submenu
     case $SUBCHOICE in
-      1)
+      🛡️)
+        sudo bash -c './plugins/node-checker/run.sh'
+        ;;
+      💧)
         if [[ ! -f /etc/systemd/system/csm_nimbusvalidator.service ]]; then
           if whiptail --title "Install Lido CSM Validator" --yesno "Do you want to install an extra Nimbus validator service for Lido's CSM?" 8 78; then
             runScript plugins/csm/plugin_csm_validator.sh -i
@@ -1087,13 +1296,40 @@ while true; do
         fi
         submenuPluginCSMValidator
         ;;
-      2)
+      ⛑️)
         if [[ ! -d /opt/ethpillar/plugin-sentinel ]]; then
             runScript plugins/sentinel/plugin_csm_sentinel.sh -i
         fi
         submenuPluginSentinel
         ;;
-      99)
+      🔎)
+        getNetworkConfig
+        getNetwork
+        if [[ ! -d /opt/ethpillar/plugin-dora ]]; then
+            runScript plugins/dora/plugin_dora.sh -i
+        fi
+        runScript plugins/dora/menu.sh
+        ;;
+      🌈)
+        if [[ ! -d /opt/ethpillar/plugin-client-stats ]]; then
+            runScript plugins/client-stats/plugin_client_stats.sh -i
+        fi
+        runScript plugins/client-stats/menu.sh
+        ;;
+      🐼)
+        if [[ ! -d /opt/ethpillar/plugin-contributoor ]]; then
+            runScript plugins/contributoor/plugin_contributoor.sh -i
+        fi
+        runScript plugins/contributoor/menu.sh
+        ;;
+      🔧)
+        export BACKTITLE EDITOR _platform _arch
+        if [[ ! -d /opt/ethpillar/plugin-eth-validator-cli ]]; then
+            runScript plugins/eth-validator-cli/plugin_eth-validator-cli.sh -i
+        fi
+        runScript plugins/eth-validator-cli/menu.sh
+        ;;
+      👋)
         break
         ;;
     esac
@@ -1105,24 +1341,20 @@ while true; do
     getBackTitle
     # Define the options for the submenu
     SUBOPTIONS=(
-      1 "eth-duties: Show upcoming block proposals, attestations, sync duties"
-      2 "Monitoring: Observe Ethereum Metrics. Explore Dashboards."
-      3 "NCDU: Find large files. Analyze disk usage."
-      4 "Port Checker: Test for Incoming Connections"
-      5 "ethdo: Conduct Common Validator Tasks"
-      6 "Peer Count: Show # peers connected to EL & CL"
-      7 "Beaconcha.in Validator Dashboard: Create a link for my validators"
-      8 "Beaconcha.in: Check Validator Entry/Exit Queue time"
-      9 "EL: Switch Execution Clients"
-      10 "Timezone: Update machine's timezone"
-      11 "Locales: Fix terminal formatting issues"
-      12 "Privacy: Clear bash shell history"
-      13 "Swapfile: Use disk space as extra RAM"
-      14 "UFW Firewall: Control network traffic against unauthorized access"
-      15 "Speedtest: Test internet bandwidth using speedtest.net"
-      16 "Yet-Another-Bench-Script: Test node performance. Automated Benchmarking."
+      ⚙️ "eth-duties: Show upcoming block proposals, attestations, sync duties"
+      🧰 "ethdo: Conduct Common Validator Tasks"
+      💾 "NCDU: Find large files. Analyze disk usage."
+      🔗 "Beaconcha.in Validator Dashboard: Create a link for my validators"
+      🚪 "Beaconcha.in: Check Validator Entry/Exit Queue time"
+      💻 "EL: Switch Execution Clients"
+      ⌚ "Timezone: Update machine's timezone"
+      🌐 "Locales: Fix terminal formatting issues"
+      📁 "Swapfile: Use disk space as extra RAM"
+      🚄 "Speedtest: Test internet bandwidth using speedtest.net"
+      💪 "Yet-Another-Bench-Script: Test node performance. Automated Benchmarking."
+      🚀 "Performance Tuning: Optimize your nodes with OS tweaks"
       - ""
-      99 "Back to main menu"
+      👋 "Back to main menu"
     )
 
     # Display the submenu and get the user's choice
@@ -1140,7 +1372,7 @@ while true; do
 
     # Handle the user's choice from the submenu
     case $SUBCHOICE in
-      1)
+      ⚙️)
         # Skip if no validators installed
         if [[ ! -f /etc/systemd/system/validator.service ]]; then echo "No validator(s) installed. Press ENTER to continue."; read; break; fi
         # Skip if arm64
@@ -1156,46 +1388,29 @@ while true; do
         fi
         submenuEthduties
         ;;
-      2)
-        # Install monitoring if not yet installed
-        if [[ ! -f /etc/systemd/system/ethereum-metrics-exporter.service ]]; then
-          if whiptail --title "Install Monitoring" --yesno "Do you want to install Monitoring?\nIncludes: Ethereum Metrics Exporter, grafana, prometheus" 8 78; then
-            runScript ethereum-metrics-exporter.sh -i
-          else
-            break
-          fi
-        fi
-        submenuMonitoring
-        ;;
-      3)
+      💾)
         findLargestDiskUsage
         ;;
-      4)
-        checkOpenPorts
-        ;;
-      5)
+      🧰)
         installEthdo
         submenuEthdo
         ;;
-      6)
-        getPeerCount
-        ;;
-      7)
+      🔗)
         createBeaconChainDashboardLink
         ;;
-      8)
+      🚪)
         checkValidatorQueue
         ;;
-      9)
+      💻)
         [[ "${_arch}" == "arm64" ]] && echo "EL Switcher not available for arm64. Press ENTER to continue." && read && break
         sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/coincashew/client-switcher/master/install.sh)"
         ;;
-      10)
+      ⌚)
         sudo dpkg-reconfigure tzdata
         ohai "Timezone updated. Press ENTER to continue."
         read
         ;;
-      11)
+      🌐)
         sudo update-locale "LANG=en_US.UTF-8"
         sudo locale-gen --purge "en_US.UTF-8"
         sudo dpkg-reconfigure --frontend noninteractive locales
@@ -1203,24 +1418,19 @@ while true; do
         ohai "Logout and login for terminal locale updates to take effect. Press ENTER to continue."
         read
         ;;
-      12)
-        history -c && history -w
-        ohai "Cleared bash history"
-        read
-        ;;
-      13)
+      📁)
         addSwapfile
         ;;
-      14)
-        submenuUFW
-        ;;
-      15)
+      🚄)
         testBandwidth
         ;;
-      16)
+      💪)
         testYetAnotherBenchScript
         ;;
-      99)
+      🚀)
+        submenuPerformanceTuning
+        ;;
+      👋)
         break
         ;;
     esac
@@ -1270,6 +1480,7 @@ function getBackTitle(){
     if [[ ${PLUGIN_MODE:-false} == true ]]; then
     BACKTITLE="${NETWORK_TEXT}${EL_TEXT} | ${CL_TEXT} | $CL-$EL$VC_TEXT$CSM_TEXT | Public Goods by CoinCashew.eth"
     fi
+    export BACKTITLE
 }
 
 function checkV1StakingSetup(){
@@ -1290,6 +1501,9 @@ function installNode(){
           Nimbus-Nethermind)
             runScript install-nimbus-nethermind.sh true
             ;;
+          Lighthouse-Reth)
+            runScript install-lighthouse-reth.sh true
+            ;;
           Teku-Besu)
             runScript install-teku-besu.sh true
             ;;
@@ -1302,10 +1516,15 @@ function installNode(){
 
 # Ask to apply patches
 function applyPatches(){
-  # Has monitoring installed but previous configuration without alert rules
-  if [[ ! -f /etc/prometheus/alert.rules.yml && -f /etc/systemd/system/ethereum-metrics-exporter.service ]]; then
-    if whiptail --title "New Patch Available - Enable Grafana Alerting" --yesno "Would you like to apply patch 1 to enable Grafana Alerting?" 8 78; then
-      runScript patches/001-alerts.sh
+  # Add motd to login message
+  if ! grep -q "cat.*motd" ~/.profile; then
+      echo "cat ~/git/ethpillar/motd" >> ~/.profile
+  fi
+  # Fix terminal formatting with locale
+  current_locale=$(locale | grep '^LANG=' | awk -F= '{print $2}')
+  if [[ ! -f /opt/ethpillar/patches/002-locale.completed ]] && [[ ! "$current_locale" == *"UTF"* ]]; then
+    if whiptail --title "New Patch Available - Set locale to fix terminal, missing emojis" --yesno "Would you like to apply patch 2?\n\nMore info: https://github.com/coincashew/EthPillar/issues/73" 9 78; then
+      runScript patches/002-locale.sh
     fi
   fi
 }
@@ -1313,7 +1532,7 @@ function applyPatches(){
 # Determine node configuration
 function setNodeMode(){
   if [[ -f /etc/systemd/system/execution.service && -f /etc/systemd/system/consensus.service && -f /etc/systemd/system/validator.service ]]; then
-     if [[ $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_MAINNET}" /etc/systemd/system/validator.service) || $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_HOLESKY}" /etc/systemd/system/validator.service) ]]; then
+     if [[ $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_MAINNET}" /etc/systemd/system/validator.service) || $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_HOLESKY}" /etc/systemd/system/validator.service) || $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_HOODI}" /etc/systemd/system/validator.service) ]]; then
         NODE_MODE="Lido CSM Staking Node"
      else
         NODE_MODE="Solo Staking Node"
@@ -1323,7 +1542,7 @@ function setNodeMode(){
   elif [[ -f /etc/systemd/system/execution.service ]] && [[ -f /etc/systemd/system/consensus.service ]]; then
     NODE_MODE="Full Node Only"
   elif [[ -f /etc/systemd/system/validator.service ]]; then
-    if [[ $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_MAINNET}" /etc/systemd/system/validator.service) || $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_HOLESKY}" /etc/systemd/system/validator.service) ]]; then
+    if [[ $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_MAINNET}" /etc/systemd/system/validator.service) || $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_HOLESKY}" /etc/systemd/system/validator.service) || $(grep --ignore-case -oE "${CSM_FEE_RECIPIENT_ADDRESS_HOODI}" /etc/systemd/system/validator.service) ]]; then
         NODE_MODE="Lido CSM Validator Client Only"
     else
         NODE_MODE="Validator Client Only"

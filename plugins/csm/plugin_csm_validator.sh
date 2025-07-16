@@ -44,10 +44,12 @@ function _getCurrentVersion(){
 }
 
 function _getLatestVersion(){
-	TAG_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/latest"
-	CHANGES_URL="https://github.com/status-im/nimbus-eth2/releases"
-	#Get tag name and remove leading 'v'
-	TAG=$(curl -s $TAG_URL | jq -r .tag_name | sed 's/.*\(v[0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+  TAG_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/latest"
+  CHANGES_URL="https://github.com/status-im/nimbus-eth2/releases"
+  #Get tag name and remove leading 'v'
+  TAG=$(curl -s $TAG_URL | jq -r .tag_name | sed 's/.*\(v[0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+  # Exit in case of null tag
+  [[ -z $TAG ]] || [[ $TAG == "null"  ]] && echo "ERROR: Couldn't find the latest version tag" && exit 1
 }
 
 function _promptYesNo(){
@@ -135,16 +137,21 @@ function _installPlugin(){
 
   # Prompt user for config values
   NETWORK=$(whiptail --title "Network" --menu \
-          "For which network are running CSM Validators?" 10 78 3 \
+          "For which network are running CSM Validators?" 10 78 4 \
           "mainnet" "Ethereum - Real ETH. Real staking rewards." \
-          "holesky" "long term Testnet  - Suitable for staking practice." \
-          "ephemery" "short term Testnet - Ideal for staking practice. Monthly resets." \
+          "hoodi" "Long term Testnet - Ideal for CSM experimentation" \
+          "ephemery" "Short term Testnet - Good for testing setups. Monthly resets." \
+          "holesky" "deprecated Testnet" \
           3>&1 1>&2 2>&3)
   
   case $NETWORK in
       mainnet)
         CSM_FEE_RECIPIENT_ADDRESS=${CSM_FEE_RECIPIENT_ADDRESS_MAINNET}
         CSM_WITHDRAWAL_ADDRESS=${CSM_WITHDRAWAL_ADDRESS_MAINNET}
+      ;;
+      hoodi)
+        CSM_FEE_RECIPIENT_ADDRESS=${CSM_FEE_RECIPIENT_ADDRESS_HOODI}
+        CSM_WITHDRAWAL_ADDRESS=${CSM_WITHDRAWAL_ADDRESS_HOODI}
       ;;
       holesky)
         CSM_FEE_RECIPIENT_ADDRESS=${CSM_FEE_RECIPIENT_ADDRESS_HOLESKY}

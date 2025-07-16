@@ -26,11 +26,14 @@ import zipfile
 import random
 import sys
 import platform
+import tempfile
+import yaml
 from consolemenu import *
 from consolemenu.items import *
 import argparse
 from dotenv import load_dotenv, dotenv_values
 from config import *
+from tqdm import tqdm
 
 import os
 
@@ -43,7 +46,7 @@ def clear_screen():
 clear_screen()  # Call the function to clear the screen
 
 # Valid configurations
-valid_networks = ['MAINNET', 'HOLESKY', 'SEPOLIA']
+valid_networks = ['MAINNET','HOODI','EPHEMERY', 'HOLESKY', 'SEPOLIA']
 valid_exec_clients = ['NETHERMIND']
 valid_consensus_clients = ['NIMBUS']
 valid_install_configs = ['Solo Staking Node', 'Full Node Only', 'Lido CSM Staking Node', 'Lido CSM Validator Client Only' ,'Validator Client Only', 'Failover Staking Node']
@@ -65,10 +68,15 @@ FEE_RECIPIENT_ADDRESS=os.getenv('FEE_RECIPIENT_ADDRESS')
 MEV_MIN_BID=os.getenv('MEV_MIN_BID')
 CSM_FEE_RECIPIENT_ADDRESS_MAINNET=os.getenv('CSM_FEE_RECIPIENT_ADDRESS_MAINNET')
 CSM_FEE_RECIPIENT_ADDRESS_HOLESKY=os.getenv('CSM_FEE_RECIPIENT_ADDRESS_HOLESKY')
+CSM_FEE_RECIPIENT_ADDRESS_HOODI=os.getenv('CSM_FEE_RECIPIENT_ADDRESS_HOODI')
 CSM_GRAFFITI=os.getenv('CSM_GRAFFITI')
 CSM_MEV_MIN_BID=os.getenv('CSM_MEV_MIN_BID')
 CSM_WITHDRAWAL_ADDRESS_MAINNET=os.getenv('CSM_WITHDRAWAL_ADDRESS_MAINNET')
 CSM_WITHDRAWAL_ADDRESS_HOLESKY=os.getenv('CSM_WITHDRAWAL_ADDRESS_HOLESKY')
+CSM_WITHDRAWAL_ADDRESS_HOODI=os.getenv('CSM_WITHDRAWAL_ADDRESS_HOODI')
+LAUNCHPAD_URL_LIDO_MAINNET=os.getenv('LAUNCHPAD_URL_LIDO_MAINNET')
+LAUNCHPAD_URL_LIDO_HOODI=os.getenv('LAUNCHPAD_URL_LIDO_HOODI')
+LAUNCHPAD_URL_LIDO_HOLESKY=os.getenv('LAUNCHPAD_URL_LIDO_HOLESKY')
 
 # Create argparse options
 parser = argparse.ArgumentParser(description='Validator Install Options :: CoinCashew.com',formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -118,7 +126,7 @@ if not args.network and not args.skip_prompts:
     index = SelectionMenu.get_selection(valid_networks,title='Validator Install Quickstart :: CoinCashew.com',subtitle='Installs Nethermind EL / Nimbus BN / Nimbus VC / MEVboost\nSelect Ethereum network:')
 
     # Exit selected
-    if index == 3:
+    if index == len(valid_networks):
         exit(0)
 
     # Set network
@@ -139,66 +147,63 @@ if not args.install_config and not args.skip_prompts:
 else:
     install_config=args.install_config
 
+# Defaults to all false
+MEVBOOST_ENABLED=False
+VALIDATOR_ENABLED=False
+VALIDATOR_ONLY=False
+NODE_ONLY=False
+
 # Sepolia is a permissioned validator set, default to NODE_ONLY
 if eth_network == "sepolia":
     NODE_ONLY=True
-    MEVBOOST_ENABLED=False
-    VALIDATOR_ENABLED=False
-    VALIDATOR_ONLY=False
 else:
     match install_config:
        case "Solo Staking Node":
-          NODE_ONLY=False
-          MEVBOOST_ENABLED=True
-          VALIDATOR_ENABLED=True
-          VALIDATOR_ONLY=False
+           MEVBOOST_ENABLED=True
+           VALIDATOR_ENABLED=True
        case "Full Node Only":
-          NODE_ONLY=True
-          MEVBOOST_ENABLED=False
-          VALIDATOR_ENABLED=False
-          VALIDATOR_ONLY=False
+           NODE_ONLY=True
        case "Lido CSM Staking Node":
-          NODE_ONLY=False
-          MEVBOOST_ENABLED=True
-          VALIDATOR_ENABLED=True
-          VALIDATOR_ONLY=False
-          if eth_network == "mainnet":
-              FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_MAINNET
-              CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_MAINNET
-          elif eth_network == "holesky":
-              FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_HOLESKY
-              CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_HOLESKY
-          else:
-            print(f'Unsupported Lido CSM Staking Node network: {eth_network}')
-            exit(1)
-          GRAFFITI=CSM_GRAFFITI
-          MEV_MIN_BID=CSM_MEV_MIN_BID
+           MEVBOOST_ENABLED=True
+           VALIDATOR_ENABLED=True
        case "Lido CSM Validator Client Only":
-          NODE_ONLY=False
-          MEVBOOST_ENABLED=True
-          VALIDATOR_ENABLED=True
-          VALIDATOR_ONLY=True
-          if eth_network == "mainnet":
-              FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_MAINNET
-              CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_MAINNET
-          elif eth_network == "holesky":
-              FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_HOLESKY
-              CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_HOLESKY
-          else:
-              print(f'Unsupported Lido CSM Staking Node network: {eth_network}')
-              exit(1)
-          GRAFFITI=CSM_GRAFFITI
-          MEV_MIN_BID=CSM_MEV_MIN_BID
+           MEVBOOST_ENABLED=True
+           VALIDATOR_ENABLED=True
+           VALIDATOR_ONLY=True
        case "Validator Client Only":
-          NODE_ONLY=False
-          MEVBOOST_ENABLED=True
-          VALIDATOR_ENABLED=True
-          VALIDATOR_ONLY=True
+           MEVBOOST_ENABLED=True
+           VALIDATOR_ENABLED=True
+           VALIDATOR_ONLY=True
        case "Failover Staking Node":
-          NODE_ONLY=False
-          MEVBOOST_ENABLED=True
-          VALIDATOR_ENABLED=False
-          VALIDATOR_ONLY=False
+           MEVBOOST_ENABLED=True
+
+# Apply Lido CSM configs
+if install_config == "Lido CSM Staking Node" or install_config == "Lido CSM Validator Client Only":
+    GRAFFITI=CSM_GRAFFITI
+    MEV_MIN_BID=CSM_MEV_MIN_BID
+    if eth_network == "mainnet":
+        FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_MAINNET
+        CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_MAINNET
+        LAUNCHPAD_URL_LIDO=LAUNCHPAD_URL_LIDO_MAINNET
+    elif eth_network == "holesky":
+        FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_HOLESKY
+        CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_HOLESKY
+        LAUNCHPAD_URL_LIDO=LAUNCHPAD_URL_LIDO_HOLESKY
+    elif eth_network == "hoodi":
+        FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_HOODI
+        CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_HOODI
+        LAUNCHPAD_URL_LIDO=LAUNCHPAD_URL_LIDO_HOODI
+    elif eth_network == "ephemery":
+        FEE_RECIPIENT_ADDRESS=CSM_FEE_RECIPIENT_ADDRESS_HOLESKY
+        CSM_WITHDRAWAL_ADDRESS=CSM_WITHDRAWAL_ADDRESS_HOLESKY
+        LAUNCHPAD_URL_LIDO=LAUNCHPAD_URL_LIDO_HOLESKY
+    else:
+        print(f'Unsupported Lido CSM Staking Node network: {eth_network}')
+        exit(1)
+
+# Ephemery override, turn off mevboost
+if eth_network == "ephemery":
+    MEVBOOST_ENABLED=False
 
 execution_client=""
 consensus_client=""
@@ -253,8 +258,6 @@ if VALIDATOR_ONLY and args.vc_only_bn_address is None and not args.skip_prompts:
 else:
     BN_ADDRESS=args.vc_only_bn_address
 
-
-
 if not args.skip_prompts:
     # Format confirmation message
     if install_config == "Solo Staking Node" or install_config == "Lido CSM Staking Node" or install_config == "Failover Staking Node":
@@ -274,6 +277,44 @@ if not args.skip_prompts:
         print(f'\nInstall cancelled by user. \n\nWhen ready, re-run install command:\npython3 {file_name}')
         exit(0)
 
+def setup_ephemery_network(genesis_repository):
+    testnet_dir = "/opt/ethpillar/testnet"
+
+    def get_github_release(repo):
+        url = f"https://api.github.com/repos/{repo}/releases/latest"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = json.loads(response.text)
+            return data.get('tag_name')
+        else:
+            return None
+
+    def download_genesis_release(genesis_release):
+        # remove old genesis and setup dir
+        if os.path.exists(testnet_dir):
+            subprocess.run([f'sudo rm -rf {testnet_dir}'], shell=True)
+        subprocess.run([f'sudo mkdir -p {testnet_dir}'], shell=True)
+        subprocess.run([f'sudo chmod -R 755 {testnet_dir}'], shell=True)
+
+        # get latest genesis
+        url = f"https://github.com/{genesis_repository}/releases/download/{genesis_release}/testnet-all.tar.gz"
+        print(f">> Downloading {genesis_release} genesis files > URL: {url}")
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            temp_dir = tempfile.mkdtemp()
+            with tarfile.open(fileobj=response.raw, mode='r|gz') as tar:
+                tar.extractall(f"{temp_dir}")
+            os.system(f"sudo mv {temp_dir}/* {testnet_dir}")
+            print(f">> Successfully downloaded {genesis_release} genesis files")
+        else:
+            print("Failed to download genesis release")
+
+    genesis_release = get_github_release(genesis_repository)
+    if genesis_release:
+        download_genesis_release(genesis_release)
+    else:
+        print(f"Failed to retrieve genesis release for {genesis_repository}")
+
 # Initialize sync urls for selected network
 if eth_network == "mainnet":
     sync_urls = mainnet_sync_urls
@@ -281,8 +322,12 @@ elif eth_network == "holesky":
     sync_urls = holesky_sync_urls
 elif eth_network == "sepolia":
     sync_urls = sepolia_sync_urls
+elif eth_network == "hoodi":
+    sync_urls = hoodi_sync_urls
+elif eth_network == "ephemery":
+    sync_urls = ephemery_sync_urls
+    setup_ephemery_network("ephemery-testnet/ephemery-genesis")
 
-# Use a random sync url
 sync_url = random.choice(sync_urls)[1]
 
 def setup_node():
@@ -340,13 +385,17 @@ def install_mevboost():
             # Download the file
             response = requests.get(download_url, stream=True)
             response.raise_for_status()  # Raise an exception for HTTP errors
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 1024
+            t = tqdm(total=total_size, unit='B', unit_scale=True)
 
             # Save the binary to the home folder
             with open("mev-boost.tar.gz", "wb") as f:
-                for chunk in response.iter_content(1024):
+                for chunk in response.iter_content(block_size):
                     if chunk:
+                        t.update(len(chunk))
                         f.write(chunk)
-
+            t.close()
             print(f">> Successfully downloaded: {asset['name']}")
 
         except requests.exceptions.RequestException as e:
@@ -369,7 +418,7 @@ def install_mevboost():
         f'Description=MEV-Boost Service for {eth_network.upper()}',
         'Wants=network-online.target',
         'After=network-online.target',
-        'Documentation=https://www.coincashew.com',
+        'Documentation=https://docs.coincashew.com',
         '',
         '[Service]',
         'User=mevboost',
@@ -385,6 +434,8 @@ def install_mevboost():
 
         if eth_network == 'mainnet':
             relay_options=mainnet_relay_options
+        elif eth_network == 'hoodi':
+            relay_options=hoodi_relay_options
         elif eth_network == 'holesky':
             relay_options=holesky_relay_options
         else:
@@ -460,13 +511,18 @@ def download_and_install_nethermind():
             # Download the file
             response = requests.get(download_url, stream=True)
             response.raise_for_status()  # Raise an exception for HTTP errors
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 1024
+            t = tqdm(total=total_size, unit='B', unit_scale=True)
 
             # Save the binary to a temporary file
             with tempfile.NamedTemporaryFile('wb', suffix='.zip', delete=False) as temp_file:
-                for chunk in response.iter_content(1024):
+                for chunk in response.iter_content(block_size):
                     if chunk:
+                        t.update(len(chunk))
                         temp_file.write(chunk)
                 temp_path = temp_file.name
+            t.close()
 
             print(f">> Successfully downloaded: {zip_filename}")
 
@@ -490,12 +546,29 @@ def download_and_install_nethermind():
         # Remove the temporary zip file
         os.remove(temp_path)
 
+        # Process custom testnet configuration
+        if eth_network=="ephemery":
+            file_path = f"/opt/ethpillar/testnet/bootnode.txt"
+            with open(file_path, "r") as file:
+                bootnodes = ",".join(file.read().splitlines())
+            _network=f"--config none.json --Init.ChainSpecPath=/opt/ethpillar/testnet/chainspec.json --Discovery.Bootnodes={bootnodes} --JsonRpc.Enabled=true --JsonRpc.EnabledModules=Eth,Subscribe,Trace,TxPool,Web3,Personal,Proof,Net,Parity,Health,Rpc,Debug,Admin --JsonRpc.EngineHost=127.0.0.1 --JsonRpc.EnginePort=8551 --Init.IsMining=false"
+        else:
+            _network=f"--config {eth_network}"
+
+        # Process sync barriers
+        if eth_network=="mainnet":
+            _syncparameters='--Sync.AncientBodiesBarrier=15537394 --Sync.AncientReceiptsBarrier=15537394'
+        elif eth_network=="sepolia":
+            _syncparameters='--Sync.AncientBodiesBarrier=1450408 --Sync.AncientReceiptsBarrier=1450408'
+        else:
+            _syncparameters=''
+
         ##### NETHERMIND SERVICE FILE ###########
         nethermind_service_file = f'''[Unit]
 Description=Nethermind Execution Layer Client service for {eth_network.upper()}
 After=network-online.target
 Wants=network-online.target
-Documentation=https://www.coincashew.com
+Documentation=https://docs.coincashew.com
 
 [Service]
 Type=simple
@@ -507,7 +580,7 @@ KillSignal=SIGINT
 TimeoutStopSec=900
 WorkingDirectory=/var/lib/nethermind
 Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/lib/nethermind"
-ExecStart=/usr/local/bin/nethermind/nethermind --config {eth_network} --datadir="/var/lib/nethermind" --Network.DiscoveryPort {EL_P2P_PORT} --Network.P2PPort {EL_P2P_PORT} --Network.MaxActivePeers {EL_MAX_PEER_COUNT} --JsonRpc.Port {EL_RPC_PORT} --Metrics.Enabled true --Metrics.ExposePort 6060 --JsonRpc.JwtSecretFile {JWTSECRET_PATH} --Pruning.Mode=Hybrid --Pruning.FullPruningTrigger=VolumeFreeSpace --Pruning.FullPruningThresholdMb=300000
+ExecStart=/usr/local/bin/nethermind/nethermind {_network} --datadir="/var/lib/nethermind" --Network.DiscoveryPort {EL_P2P_PORT} --Network.P2PPort {EL_P2P_PORT} --Network.MaxActivePeers {EL_MAX_PEER_COUNT} --JsonRpc.Port {EL_RPC_PORT} --Metrics.Enabled true --Metrics.ExposePort 6060 --JsonRpc.JwtSecretFile {JWTSECRET_PATH} --Pruning.Mode=Hybrid --Pruning.FullPruningTrigger=VolumeFreeSpace --Pruning.FullPruningThresholdMb=300000 {_syncparameters}
 
 [Install]
 WantedBy=multi-user.target
@@ -565,13 +638,17 @@ def download_nimbus():
             # Download the file
             response = requests.get(download_url, stream=True)
             response.raise_for_status()  # Raise an exception for HTTP errors
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 1024
+            t = tqdm(total=total_size, unit='B', unit_scale=True)
 
             # Save the binary to the home folder
             with open("nimbus.tar.gz", "wb") as f:
-                for chunk in response.iter_content(1024):
+                for chunk in response.iter_content(block_size):
                     if chunk:
+                        t.update(len(chunk))
                         f.write(chunk)
-
+            t.close()
             print(f">> Successfully downloaded: {asset['name']}")
 
         except requests.exceptions.RequestException as e:
@@ -619,12 +696,21 @@ def install_nimbus():
         else:
             _feeparameters=''
 
+        # Process custom testnet configuration
+        if eth_network=="ephemery":
+            file_path = f"/opt/ethpillar/testnet/bootstrap_nodes.txt"
+            with open(file_path, "r") as file:
+                bootnodes = ",".join(file.read().splitlines())
+            _network=f"--network=/opt/ethpillar/testnet --bootstrap-node={bootnodes}"
+        else:
+            _network=f"--network={eth_network}"
+
         ########### NIMBUS SERVICE FILE #############
         nimbus_service_file = f'''[Unit]
 Description=Nimbus Beacon Node Consensus Client service for {eth_network.upper()}
 Wants=network-online.target
 After=network-online.target
-Documentation=https://www.coincashew.com
+Documentation=https://docs.coincashew.com
 
 [Service]
 Type=simple
@@ -634,7 +720,7 @@ Restart=on-failure
 RestartSec=3
 KillSignal=SIGINT
 TimeoutStopSec=900
-ExecStart=/usr/local/bin/nimbus_beacon_node --network={eth_network} --data-dir=/var/lib/nimbus --tcp-port={CL_P2P_PORT} --udp-port={CL_P2P_PORT} --max-peers={CL_MAX_PEER_COUNT} --rest-port={CL_REST_PORT} --enr-auto-update=true --web3-url=http://127.0.0.1:8551 --rest --metrics --metrics-port=8008 --jwt-secret={JWTSECRET_PATH} --non-interactive --status-bar=false --in-process-validators=false {_feeparameters} {_mevparameters}
+ExecStart=/usr/local/bin/nimbus_beacon_node {_network} --data-dir=/var/lib/nimbus --tcp-port={CL_P2P_PORT} --udp-port={CL_P2P_PORT} --max-peers={CL_MAX_PEER_COUNT} --rest-port={CL_REST_PORT} --enr-auto-update=true --web3-url=http://127.0.0.1:8551 --rest --metrics --metrics-port=8008 --jwt-secret={JWTSECRET_PATH} --non-interactive --status-bar=false --in-process-validators=false {_feeparameters} {_mevparameters}
 
 [Install]
 WantedBy=multi-user.target
@@ -654,9 +740,16 @@ def run_nimbus_checkpoint_sync():
         print(f'>> Running Checkpoint Sync. Using Sync URL: {sync_url}')
         db_path = "/var/lib/nimbus/db"
         os.system(f'sudo rm -rf {db_path}')
+
+        # Process custom testnet configuration
+        if eth_network=="ephemery":
+            _network=f"--network=/opt/ethpillar/testnet"
+        else:
+            _network=f"--network={eth_network}"
+
         subprocess.run([
             'sudo', '/usr/local/bin/nimbus_beacon_node', 'trustedNodeSync',
-            f'--network={eth_network}', '--data-dir=/var/lib/nimbus',
+            f'{_network}', '--data-dir=/var/lib/nimbus',
             f'--trusted-node-url={sync_url}', '--backfill=false'
         ])
         os.system(f'sudo chown -R consensus:consensus {db_path}')
@@ -688,7 +781,7 @@ def install_nimbus_validator():
 Description=Nimbus Validator Client service for {eth_network.upper()}
 Wants=network-online.target
 After=network-online.target
-Documentation=https://www.coincashew.com
+Documentation=https://docs.coincashew.com
 
 [Service]
 Type=simple
@@ -765,9 +858,8 @@ def finish_install():
             if MEVBOOST_ENABLED == True:
                 os.system(f'sudo systemctl start mevboost')
 
-    answer=PromptUtils(Screen()).prompt_for_yes_or_no(f"\nConfigure node to autostart:\nWould you like this node to autostart when system boots up?")
-
     # Prompt to enable autostart services
+    answer=PromptUtils(Screen()).prompt_for_yes_or_no(f"\nConfigure node to autostart:\nWould you like this node to autostart when system boots up?")
     if answer:
         if not VALIDATOR_ONLY:
             os.system(f'sudo systemctl enable execution consensus')
@@ -776,8 +868,9 @@ def finish_install():
         if MEVBOOST_ENABLED == True and not VALIDATOR_ONLY:
             os.system(f'sudo systemctl enable mevboost')
 
-    # Ask CSM staker if they to manage validator keystores
+    # Show Lido CSM Instructions and ask CSM staker if they to manage validator keystores
     if install_config == 'Lido CSM Staking Node' or install_config == 'Lido CSM Validator Client Only':
+        os.system(f'whiptail --title "Next Steps: Lido CSM" --msgbox "1. Generate validator keys\n\n2. Upload your keys & bond at {LAUNCHPAD_URL_LIDO}\n\n3. Fully sync your node.\n\nThanks for using Lido CSM and EthPillar!" 15 78')
         answer=PromptUtils(Screen()).prompt_for_yes_or_no(f"\nWould you like to generate or import new Lido CSM validator keys now?\nReminder: Set the Lido withdrawal address to: {CSM_WITHDRAWAL_ADDRESS}")
         if answer:
             os.chdir(os.path.expanduser("~/git/ethpillar"))
@@ -786,6 +879,7 @@ def finish_install():
 
     # Ask solo staker if they to manage validator keystores
     if install_config == 'Solo Staking Node' or install_config == 'Validator Client Only':
+        os.system(f'whiptail --title "Next Steps: Staking" --msgbox "1. Generate or import validator keys\n\n2. Let your node fully sync\n\nThanks for using EthPillar!" 13 78')
         answer=PromptUtils(Screen()).prompt_for_yes_or_no(f"\nWould you like to generate or import validator keys now?\nIf not, resume at: ethpillar > Validator Client ")
         if answer:
             os.chdir(os.path.expanduser("~/git/ethpillar"))
