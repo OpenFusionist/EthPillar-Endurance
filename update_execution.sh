@@ -12,6 +12,16 @@ BASE_DIR=$HOME/git/ethpillar
 # Load functions
 source $BASE_DIR/functions.sh
 
+# Auto-update Endurance network config if outdated
+CONFIG_FILE="/opt/ethpillar/el-cl-genesis-data/config.yaml"
+NETWORK_CONFIG_URL="https://github.com/OpenFusionist/network_config"
+PECTRA_KEYWORD="ELECTRA_FORK_EPOCH: 120150"
+
+if [[ ! -f "$CONFIG_FILE" ]] || ! grep -q "$PECTRA_KEYWORD" "$CONFIG_FILE"; then
+    echo "[INFO] Endurance config outdated or missing. Fetching latest..."
+    runScript download_endurance_config.sh "$NETWORK_CONFIG_URL"
+fi
+
 # Get machine info
 _platform=$(get_platform)
 _arch=$(get_arch)
