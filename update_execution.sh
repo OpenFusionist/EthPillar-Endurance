@@ -20,10 +20,10 @@ _platform=$(get_platform)
 _arch=$(get_arch)
 
 function getCurrentVersion(){
-	 EL_INSTALLED=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],"id":2}' ${EL_RPC_ENDPOINT} | jq '.result')
+	EL_INSTALLED=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"web3_clientVersion","params":[],"id":2}' ${EL_RPC_ENDPOINT} | jq '.result')
     #Find version in format #.#.#
     if [[ $EL_INSTALLED ]] ; then
-        VERSION=$(echo $EL_INSTALLED | sed 's/.*v\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+        VERSION=$(echo $EL_INSTALLED | sed 's/.*[v\/]\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
 	else
 		VERSION="Client not running or still starting up. Unable to query version."
 	fi
@@ -34,6 +34,8 @@ function getClient(){
 }
 
 function promptYesNo(){
+	# Remove front v if present
+	[[ "${VERSION#v}" == "${TAG#v}" ]] && whiptail --title "Already updated" --msgbox "You are already on the latest version: $VERSION" 10 78 && return
     if whiptail --title "Update Execution Client - $EL" --yesno "Installed Version is: $VERSION\nLatest Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update $EL to $TAG?" 15 78; then
   		updateClient
   		promptViewLogs
@@ -57,8 +59,8 @@ function getLatestVersion(){
 	    CHANGES_URL="https://github.com/hyperledger/besu/releases"
 	    ;;
 	  Erigon)
-	    TAG_URL="https://api.github.com/repos/ledgerwatch/erigon/releases/latest"
-	    CHANGES_URL="https://github.com/ledgerwatch/erigon/releases"
+	    TAG_URL="https://api.github.com/repos/erigontech/erigon/releases/latest"
+	    CHANGES_URL="https://github.com/erigontech/erigon/releases"
 	    ;;
 	  Geth)
 	    TAG_URL="https://api.github.com/repos/ethereum/go-ethereum/releases/latest"
@@ -71,6 +73,8 @@ function getLatestVersion(){
 	  esac
 	#Get tag name
 	TAG=$(curl -s $TAG_URL | jq -r .tag_name)
+	# Exit in case of null tag
+	[[ -z $TAG ]] || [[ $TAG == "null"  ]] && echo "ERROR: Couldn't find the latest version tag" && exit 1
 }
 
 function updateClient(){
@@ -106,20 +110,21 @@ function updateClient(){
 		rm besu.tar.gz
 	    ;;
 	  Erigon)
-	    RELEASE_URL="https://api.github.com/repos/ledgerwatch/erigon/releases/latest"
-		BINARIES_URL="$(curl -s $RELEASE_URL | jq -r ".assets[] | select(.name) | .browser_download_url" | grep --ignore-case ${_platform}_${_arch})"
+	    RELEASE_URL="https://api.github.com/repos/erigontech/erigon/releases/latest"
+		BINARIES_URL="$(curl -s $RELEASE_URL | jq -r ".assets[] | select(.name) | .browser_download_url" | grep --ignore-case ${_platform}_${_arch}.tar.gz)"
 		echo Downloading URL: $BINARIES_URL
 		cd $HOME
 		wget -O erigon.tar.gz $BINARIES_URL
 		tar -xzvf erigon.tar.gz -C $HOME
+		mv erigon_*_${_arch} erigon
 		sudo systemctl stop execution
-		sudo mv $HOME/erigon /usr/local/bin/erigon
+		sudo mv $HOME/erigon/erigon /usr/local/bin
 		sudo systemctl start execution
-		rm erigon.tar.gz README.md
+		rm -rf erigon erigon.tar.gz
 		;;
 	  Geth)
 		# Convert to lower case
-		_platform=$(echo ${_platform} | tr '[:upper:]' '[:lower:]')
+		_platform=${_platform,,}
 		RELEASE_URL="https://geth.ethereum.org/downloads"
 		FILE="https://gethstore.blob.core.windows.net/builds/geth-${_platform}-${_arch}[a-zA-Z0-9./?=_%:-]*.tar.gz"
 		BINARIES_URL="$(curl -s $RELEASE_URL | grep -Eo $FILE | head -1)"
@@ -134,7 +139,7 @@ function updateClient(){
 	    ;;
   	  Reth)
 		# Convert to lower case
-		_platform=$(echo ${_platform} | tr '[:upper:]' '[:lower:]')
+		_platform=${_platform,,}
 		[[ "${_arch}" == "amd64" ]] && _architecture="x86_64" || _architecture="aarch64"
 	    RELEASE_URL="https://api.github.com/repos/paradigmxyz/reth/releases/latest"
 		TAG=$(curl -s $RELEASE_URL | jq -r .tag_name)
@@ -169,7 +174,6 @@ function updateJRE(){
 	fi
 }
 
-setWhiptailColors
 getClient
 getCurrentVersion
 getLatestVersion

@@ -82,14 +82,14 @@ ohai() {
 requirements_check() {
   # Check CPU architecture
   if ! [[ $(lscpu | grep -oE 'x86') || $(lscpu | grep -oE 'aarch64') ]]; then
-    echo "This machine's CPU architecture is not yet unsuppported."
+    echo "This machine's CPU architecture is not yet supported."
     echo "Recommend using Intel-AMD x86 or arm64 systems for best experience."
     exit 1
   fi
 
   # Check operating system
   if ! [[ "$(uname)" == "Linux" ]]; then
-    echo "This operating system is not yet unsuppported."
+    echo "This operating system is not yet supported."
     echo "Recommend installing Ubuntu Desktop 24.04+ LTS or Ubuntu Server 24.04+ LTS for best experience."
     exit 1
   fi
@@ -116,15 +116,8 @@ linux_install_python() {
     ohai "Creating venv"
     $python -m venv ~/.local --system-site-packages
     ohai "Installing pip requirements"
-    ~/.local/bin/pip install requests console-menu python-dotenv
+    ~/.local/bin/pip install requests console-menu python-dotenv tqdm
     exit_on_error $?
-}
-
-linux_update_pip() {
-    PYTHONPATH=$(which $python)
-    ohai "You are using python@ $PYTHONPATH$"
-    ohai "Installing python tools"
-    $python -m pip install --upgrade pip
 }
 
 linux_install_validator-install() {
@@ -171,13 +164,12 @@ if [[ "$OS" == "Linux" ]]; then
     if [[ -z $skip_prompt ]]; then wait_for_user; fi
     linux_install_pre
     linux_install_python
-    linux_update_pip
     linux_install_validator-install
     echo ""
     echo ""
     echo "######################################################################"
     echo "##                                                                  ##"
-    echo "##      VALIDATOR INSTALL COMPLETE   To manage, use \"ethpillar\"     ##"
+    echo "##      VALIDATOR INSTALL COMPLETE!  To start, type \"ethpillar\"     ##"
     echo "##                                                                  ##"
     echo "######################################################################"
     echo ""

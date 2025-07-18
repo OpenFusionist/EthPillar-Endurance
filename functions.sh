@@ -26,7 +26,8 @@ declare -a INDICES
 getNetworkConfig() {
     ip_current=$( hostname --all-ip-address | awk '{print $1}')
     interface_current=$(ip route | grep default | head -1 | sed 's/.*dev \([^ ]*\) .*/\1/')
-    network_current="$(ip route | grep $interface_current | grep -v default | head -1 | awk '{print $1}')"
+    network_current="$(ip route | grep "$interface_current" | grep -v default | head -1 | awk '{print $1}')"
+    export ip_current interface_current network_current
 }
 
 exit_on_error() {
@@ -115,7 +116,7 @@ print_node_info() {
   validator_status=$(if systemctl is-active --quiet validator ; then printf "Online" ; elif [ -f /etc/systemd/system/validator.service ]; then printf "Offline" ; else printf "Not Installed"; fi)
   mevboost_status=$(if systemctl is-active --quiet mevboost ; then printf "Online" ; elif [ -f /etc/systemd/system/mevboost.service ]; then printf "Offline" ; else printf "Not Installed"; fi)
   ethpillar_commit=$(git -C "${BASE_DIR}" rev-parse HEAD)
-  ethpillar_version=$(grep EP_VERSION= $BASE_DIR/ethpillar.sh | sed 's/EP_VERSION=//g')
+  ethpillar_version=$(grep ^EP_VERSION= $BASE_DIR/ethpillar.sh | sed 's/EP_VERSION=//g')
   SERVICES=(execution consensus validator mevboost)
   autostart_status=()
   for UNIT in ${SERVICES[@]}
@@ -204,6 +205,9 @@ getNetwork(){
     17000)
       NETWORK="Holesky"
       ;;
+    560048)
+      NETWORK="Hoodi"
+      ;;
     11155111)
       NETWORK="Sepolia"
       ;;
@@ -221,10 +225,12 @@ getNetwork(){
         NETWORK="Custom Network"
       fi
     esac
+    export NETWORK
 }
 
 # Gets software version from binary
 getCurrentVersion(){
+    VERSION="NotInstalled"
     case "$CLIENT" in
       Lighthouse)
         VERSION=$(/usr/local/bin/lighthouse --version | head -1 | grep -oE "v[0-9]+.[0-9]+.[0-9]+")
@@ -267,7 +273,8 @@ getPubKeys(){
    local ARGUMENT=${1:-"default"}
    case $VC in
       Lighthouse)
-         TEMP=$(/usr/local/bin/lighthouse account validator list --datadir /var/lib/lighthouse | grep -Eo '0x[a-fA-F0-9]{96}')
+         [[ -d /var/lib/lighthouse_validator ]] && vc_path="/var/lib/lighthouse_validator" || vc_path="/var/lib/lighthouse/validators"
+         TEMP=$(sudo /usr/local/bin/lighthouse account validator list --datadir "$vc_path" | grep -Eo '0x[a-fA-F0-9]{96}')
          convertLIST
       ;;
       Lodestar)
@@ -421,6 +428,13 @@ findLargestDiskUsage(){
   # Run ncdu on root directory
   ncdu /
 }
+
+testAndSystemctlCommand() {
+  local _service
+  for _service in "${_SERVICES[@]}"; do
+    test -f /etc/systemd/system/"${_service}".service && sudo systemctl "$1" "${_service}"
+  done
+}
  
 # Configure autostart of services
 configureAutoStart(){
@@ -428,28 +442,14 @@ configureAutoStart(){
     echo "${tty_bold}Enable node to autostart when system boots up? [y|n]${tty_reset}" 
     read -rsn1 yn
     if [[ ${yn} = [Yy]* ]]; then
-        sudo systemctl enable execution.service
-        sudo systemctl enable consensus.service
-        if [[ -f /etc/systemd/system/validator.service ]]; then
-          sudo systemctl enable validator.service
-        fi
-        if [[ -f /etc/systemd/system/mevboost.service ]]; then
-          sudo systemctl enable mevboost.service
-        fi
+        testAndSystemctlCommand enable
         ohai "Enabled node's systemd services. Node will autostart at boot."
     else
-        sudo systemctl disable execution.service
-        sudo systemctl disable consensus.service
-        if [[ -f /etc/systemd/system/validator.service ]]; then
-          sudo systemctl disable validator.service
-        fi
-        if [[ -f /etc/systemd/system/mevboost.service ]]; then
-          sudo systemctl disable mevboost.service
-        fi
+        testAndSystemctlCommand disable
         ohai "Disabled node's systemd services. Node will not autostart at boot."
     fi
-    ohai "Press ENTER to continue"
-    read
+    read -r -p "Press ENTER to continue"
+    echo
 }
 
 # Checks whether a validator pubkey is registered on all relays found in mevboost.service
@@ -522,8 +522,9 @@ addSwapfile(){
         echo "Lower RAM Swappiness to 10"
         # Temporarily change the swappiness value
         sudo sysctl vm.swappiness=10
-        # Make the change permanent
-        sudo bash -c 'echo "vm.swappiness = 10" >> /etc/sysctl.conf'
+        # Make the change permanent using sysctl.d
+        sudo mkdir -p /etc/sysctl.d
+        echo "vm.swappiness = 10" | sudo tee /etc/sysctl.d/99-swappiness.conf > /dev/null
     else
         echo "Swap is already enabled."
     fi
@@ -543,7 +544,7 @@ generateVoluntaryExitMessage(){
     echo "1) A path to the directory containing your keystore-m_####.json file(s)"
     echo "2) The keystore's passphrase"
     echo ""
-    echo "Note: “passphrase” is NOT your mnemonic or secret recovery phrase!"
+    ohai "Note: “passphrase” is NOT your mnemonic or secret recovery phrase!"
     echo ""
     ohai "Result of this operation:"
     echo "- One VEM file (e.g. exit_validator_index_#.json) per validator is generated."
@@ -555,7 +556,7 @@ generateVoluntaryExitMessage(){
     echo "- Backup and save VEMs to external storage. (e.g. USB drive)"
     echo "- Share with your heirs."
     echo "- For more information on what happens AFTER broadcasting a VEM with detailed timelines, see:"
-    echo "  https://www.coincashew.com/coins/overview-eth/guide-or-how-to-setup-a-validator-on-eth2-mainnet/part-iii-tips/voluntary-exiting-a-validator"
+    echo "  https://docs.coincashew.com/guides/voluntary-exiting-a-validator"
     echo ""
     echo "${tty_bold}Do you wish to continue? [y|n]${tty_reset}"
     read -rsn1 yn
@@ -622,7 +623,7 @@ broadcastVoluntaryExitMessageLocally(){
     echo "- Balances: Validator's balance will be swept to your withdrawal address."
     echo "- Wait time: Check estimated exit queue wait times at https://www.validatorqueue.com"
     echo "- Timelines: For more detailed sequence of events, see:"
-    echo "  https://www.coincashew.com/coins/overview-eth/guide-or-how-to-setup-a-validator-on-eth2-mainnet/part-iii-tips/voluntary-exiting-a-validator"
+    echo "  https://docs.coincashew.com/guides/voluntary-exiting-a-validator"
     echo ""
     echo "${tty_bold}Do you wish to continue? [y|n]${tty_reset}"
     read -rsn1 yn
@@ -754,13 +755,15 @@ createBeaconChainDashboardLink(){
     getPubKeys
     getIndices
     local _ids=$(echo ${INDICES[@]} | sed  's/ /,/g')
-    case $NETWORK in
+    case ${NETWORK,,} in
        holesky)
           _link="https://holesky.beaconcha.in/dashboard?validators=" ;;
        mainnet)
           _link="https://beaconcha.in/dashboard?validators=" ;;
        ephemery)
           _link="https://beaconchain.ephemery.dev/dashboard?validators=" ;;
+       hoodi)
+          _link="https://hoodi.beaconcha.in/dashboard?validators=" ;;
        *)
           echo "Unsupported Network: ${NETWORK}" && exit 1
     esac
@@ -799,7 +802,7 @@ testYetAnotherBenchScript(){
     echo "  * Bandwidth should be at least 10Mbit/s upload and 10Mbit/s download"
     echo "  * At least 2TB data transfer per month"
     echo "- Disk:"
-    echo "  * Capacity at least 2TB Mainnet, 300GB Holesky testnet, 3GB Ephemery testnet"
+    echo "  * Capacity at least 2TB Mainnet, 50GB Hoodi testnet, 3GB Ephemery testnet"
     echo "  * NVME drive preferred, SSD with TLC cache can work"
     echo "  * I/O Per Second on 4k block size test at least 15K IOPS read, 5K IOPS write"
     echo "- CPU:"
@@ -987,55 +990,104 @@ ethdoWithdrawalAddress(){
     read
 }
 
+calculate_days_hours_and_minutes() {
+    local total_days=$1
+
+    # Check if the input is a valid number
+    if ! [[ "$total_days" =~ ^([0-9]+)?(\.[0-9]+)?$ ]]; then
+        echo "Error: Input must be a valid number."
+        return 1
+    fi
+
+    # Calculate the total number of minutes
+    local total_minutes
+    total_minutes=$(echo "$total_days * 24 * 60" | bc)
+
+    # Calculate the number of days, hours, and remaining minutes
+    local days
+    days=$(echo "$total_days / 1" | bc)
+    local remaining_minutes
+    remaining_minutes=$(echo "$total_minutes % (24 * 60)" | bc)
+    local hours
+    hours=$(echo "$remaining_minutes / 60" | bc)
+    local minutes
+    minutes=$(echo "$remaining_minutes % 60" | bc)
+
+     # Ensure minutes is an integer
+    minutes=$(echo "$minutes / 1" | bc)
+
+    # Format the output
+    if (( $(echo "$days >= 1" | bc -l) )); then
+        echo "$days days, $hours hours and $minutes minutes"
+    elif (( $(echo "$hours >= 1" | bc -l) )); then
+        echo "$hours hours and $minutes minutes"
+    else
+        echo "$minutes minutes"
+    fi
+}
+
 # Checks validator queue by querying beaconcha.in
 checkValidatorQueue(){
-    #Variables
     BEACONCHAIN_VALIDATOR_QUEUE_API_URL="/api/v1/validators/queue"
-    declare -A BEACONCHAIN_URLS=()
-    BEACONCHAIN_URLS["Mainnet"]="https://beaconcha.in"
-    BEACONCHAIN_URLS["Holesky"]="https://holesky.beaconcha.in"
-    BEACONCHAIN_URLS["Ephemery"]="https://beaconchain.ephemery.dev"
-    BEACONCHAIN_URLS["Endurance Devnet"]="https://beacon.fusionist.io"
-    BEACONCHAIN_URLS["Endurance Mainnet"]="https://beacon.fusionist.io"
-    # Dencun entry churn cap
-    CHURN_ENTRY_PER_EPOCH=8
-    CHURN_RATE_CONSTANT=65536
-    EPOCHS_PER_DAY_CONSTANT=225
+    declare -A BEACONCHAIN_URLS=(
+        ["Mainnet"]="https://beaconcha.in"
+        ["Holesky"]="https://holesky.beaconcha.in"
+        ["Hoodi"]="https://hoodi.beaconcha.in"
+        ["Ephemery"]="https://beaconchain.ephemery.dev"
+        ["Endurance Devnet"]="https://beacon.fusionist.io"
+        ["Endurance Mainnet"]="https://beacon.fusionist.io"
+    )
+    # Validate network mapping
+    if [[ -z "${BEACONCHAIN_URLS["${NETWORK}"]}" ]]; then
+        echo "Error: Unsupported Network '${NETWORK}' for validator queue queries." >&2
+        return 1
+    fi
+
+    # Pectra churn values
+    local CHURN_LIMIT_PER_EPOCH=256
+    local CHURN_LIMIT_PER_DAY=57600
+
+    # helper function
+    display_queue() {
+      local label=$1 count=$2 wait_time
+      ohai "${label} Queue"
+      echo "ETH ${label}: $count"
+      if (( count > 0 )); then
+        wait_time=$(calculate_days_hours_and_minutes "$(echo "scale=6; $count / $CHURN_LIMIT_PER_DAY" | bc)")
+      else
+        wait_time="No wait"
+      fi
+      echo "Estimated wait time: $wait_time"
+      echo "Churn: ${CHURN_LIMIT_PER_EPOCH} ETH per epoch or ${CHURN_LIMIT_PER_DAY} ETH per day"
+    }
 
     # Query for data
-    json=$(curl -s ${BEACONCHAIN_URLS["${NETWORK}"]}${BEACONCHAIN_VALIDATOR_QUEUE_API_URL})
+    local json entering exiting count
+    if ! json=$(curl -fsSL "${BEACONCHAIN_URLS["${NETWORK}"]}"${BEACONCHAIN_VALIDATOR_QUEUE_API_URL}); then
+        echo "ERROR: Validator Queue API request failed." >&2
+        return 1
+    fi
 
     # Parse JSON using jq and print data
-    if $(echo "$json" | jq -e '.data[]' > /dev/null 2>&1); then
-        CHURN_ENTRY_PER_DAY=$(echo "scale=0; $CHURN_ENTRY_PER_EPOCH * $EPOCHS_PER_DAY_CONSTANT" | bc)
-        CHURN_EXIT_PER_EPOCH=$(echo "scale=0; $(echo "$json" | jq -r '.data.validatorscount') / $CHURN_RATE_CONSTANT" | bc)
-        CHURN_EXIT_PER_DAY=$(echo "scale=0; $CHURN_EXIT_PER_EPOCH * $EPOCHS_PER_DAY_CONSTANT" | bc)
+    if echo "$json" | jq -e 'has("data") and .data.beaconchain_entering != null' > /dev/null; then
+        entering=$(echo "$json" | jq -r '.data.beaconchain_entering')
+        exiting=$(echo "$json" | jq -r '.data.beaconchain_exiting')
+        count=$(echo "$json" | jq -r '.data.validatorscount')
         echo "#######################################################"
-        ohai "${NETWORK} Validator Entry/Exit Queue Stats"
+        ohai "${NETWORK} ETH Entry/Exit Queue Stats"
         echo "#######################################################"
         ohai "Reminder: Important Timing Consideration"
         echo "- Wait for Beacon Node Sync: Before making a deposit, ensure your beacon node is synced to avoid missing rewards."
-        echo "- Timing of Validator Activation: After depositing, it takes about 15 hours for a validator to be activated unless there's a long entry queue."
+        echo "- Timing of Validator Activation: After depositing, it takes about ~13 minutes for a validator to be activated unless there's a long entry queue."
         echo "- Timing of Validator Exiting: After initiating an exit by broadcasting a VEM, it takes validator a minimum of 4 epochs to be exited unless there's a long exit queue."
-        ohai "Entry Queue"
-        echo "Validators Entering: $(echo $json | jq -r '.data.beaconchain_entering')"
-        echo "Estimated wait time: $(echo "scale=1; $(echo "$json" | jq -r '.data.beaconchain_entering') / $CHURN_ENTRY_PER_DAY" | bc) days"
-        echo "Churn: ${CHURN_ENTRY_PER_EPOCH} per epoch"
-        ohai "Exit Queue"
-        echo "Validators Exiting: $(echo $json | jq -r '.data.beaconchain_exiting')"
-        if [[ $(echo $json | jq -r '.data.beaconchain_exiting') -gt 0 ]]; then
-            _waittime=$(echo "scale=1; $(echo "$json" | jq -r '.data.beaconchain_exiting') / $CHURN_EXIT_PER_DAY" | bc)
-        else
-            _waittime="0"
-        fi
-        echo "Estimated wait time: $_waittime days"
-        echo "Churn: ${CHURN_EXIT_PER_EPOCH} per epoch"
-        ohai "Total Active Validator Count: $(echo $json | jq -r '.data.validatorscount')"
+        display_queue "Entering" "$entering"
+        display_queue "Exiting" "$exiting"
+        ohai "Total Active Validator Count: $count"
     else
       ohai "Unable to query beaconcha.in for $NETWORK validator queue data."
     fi
     ohai "Press ENTER to continue."
-    read
+    read -r
 }
 
 # Checks local latency of relays found in mevboost.service file
@@ -1135,4 +1187,104 @@ CPU Load Avg Check :   <$cpu_threshold Normal,  >$cpu_threshold Caution,  >$cpus
 CPU Load Average : $(uptime | awk -F'load average:' '{ print $2 }' | cut -f1 -d,)
 CPU Heath Status : $(uptime | awk -F'load average:' '{ print $2 }' | cut -f1 -d, | awk -v num="$cpu_threshold" -v num2="$cpus" '{if ($1 < num) print "✅ Normal"; else if ($1 > num2) print "❌ Unhealthy"; else print "⚠️ Caution"}')
 EOF
+}
+
+# Explain Validator Actions and Topup features
+showValidatorActions(){
+    local VA_PATH="/en/validator-actions"
+    local TOPUP_PATH="/en/top-up"
+    declare -A VALIDATOR_ACTION_URLS=()
+    VALIDATOR_ACTION_URLS["Mainnet"]="https://launchpad.ethereum.org"
+    VALIDATOR_ACTION_URLS["Hoodi"]="https://hoodi.launchpad.ethereum.org"
+    VALIDATOR_ACTION_URLS["Holesky"]="https://holesky.launchpad.ethereum.org"
+    VALIDATOR_ACTION_URLS["Ephemery"]="https://launchpad.ephemery.dev"
+    local VA_URL=${VALIDATOR_ACTION_URLS["${NETWORK}"]}${VA_PATH}
+    local TOPUP_URL=${VALIDATOR_ACTION_URLS["${NETWORK}"]}${TOPUP_PATH}
+    local MSG="Visit the link below with your browser and connect your withdrawal address wallet to
+
+- upgrade to compounding validator (0x02),
+- consolidate validator(s),
+- make a partial withdrawal,
+- top up / add ETH to validator balance,
+- force an exit
+
+Actions: $VA_URL
+  TopUp: $TOPUP_URL"
+    whiptail --title "Validator Actions: New features since Pectra Upgrade" --msgbox "$MSG" 18 78
+}
+
+# Function to display log dialog and return the selected option
+function get_user_input() {
+    local OPTIONS=()
+    local service date_range
+    test -f /etc/systemd/system/execution.service && OPTIONS+=("consensus" "")
+    test -f /etc/systemd/system/consensus.service && OPTIONS+=("execution" "")
+    test -f /etc/systemd/system/validator.service && OPTIONS+=("validator" "")
+    test -f /etc/systemd/system/mevboost.service && OPTIONS+=("mevboost" "" )
+    test -f /etc/systemd/system/csm_nimbusvalidator.service && OPTIONS+=("csm_nimbusvalidator" "")
+    service=$(whiptail --title "Export journalctl service logs" --menu \
+          "I want to export logs for:" 15 60 6 \
+          "${OPTIONS[@]}" \
+          3>&1 1>&2 2>&3)
+    if [ -z "$service" ]; then return; fi # pressed cancel
+    date_range=$(whiptail --title "Date Range Selection" --menu "Choose a date range:" 15 60 5 \
+        "Today" "" \
+        "Yesterday" "" \
+        "Last_Hour" "" \
+        "Last_Week" "" \
+        "Custom" ""  3>&1 1>&2 2>&3)
+    if [ -z "$date_range" ]; then return; fi # pressed cancel
+    echo "$service $date_range"
+}
+
+# Exports journalctl logs
+function export_logs() {
+    local user_input service date_range output_file
+    user_input=$(get_user_input)
+    if [ -z "$user_input" ]; then return; fi # pressed cancel
+    service=$(echo "$user_input" | awk '{print $1}')
+    date_range=$(echo "$user_input" | awk '{print $2}')
+
+    # Determine the start and end times based on the selected date range
+    local start_time=""
+    local end_time=""
+    case $date_range in
+        "Today")
+            start_time="00:00"
+            end_time="23:59:59"
+            ;;
+        "Yesterday")
+            start_time="$(date -d yesterday +%F) 00:00:00"
+            end_time="$(date -d yesterday +%F) 23:59:59"
+            ;;
+        "Last_Hour")
+            start_time="$(date -d '1 hour ago' '+%F %H:%M:%S')"
+            end_time="$(date '+%F %H:%M:%S')"
+            ;;
+        "Last_Week")
+            start_time="$(date -d 'last week' +%F) 00:00:00"
+            end_time="$(date -d 'this week' +%F) 23:59:59"
+            ;;
+        "Custom")
+            local custom_start custom_end
+            custom_start=$(whiptail --title "Custom Start Date" --inputbox "Enter start date (YYYY-MM-DD HH:MM):" 10 60 "$(date +%F)" 3>&1 1>&2 2>&3)
+            [[ -z $custom_start ]] && return 1 # user pressed <Cancel> button
+            custom_end=$(whiptail --title "Custom End Date" --inputbox "Enter end date (YYYY-MM-DD HH:MM):" 10 60 "$(date +%F)" 3>&1 1>&2 2>&3)
+            [[ -z $custom_end ]] && return 1 # user pressed <Cancel> button
+            start_time="$custom_start"
+            end_time="$custom_end"
+            ;;
+        *)
+            whiptail --title "Invalid Option" --msgbox "Invalid date range selected." 10 60
+            return 1
+            ;;
+    esac
+
+    # Prompt for the output file name
+    output_file=$(whiptail --title "Output File Name" --inputbox "Enter the output file name:" 10 60 "ethpillar_logs_${service}.txt" 3>&1 1>&2 2>&3)
+
+    # Generate journalctl command based on user input and save to a log file
+    sudo journalctl --since "$start_time" --until "$end_time" -u "$service" | tee "$HOME"/"$output_file"
+
+    whiptail --title "Export Complete" --msgbox "Logs have been exported to $HOME/$output_file" 10 60
 }

@@ -1,3 +1,14 @@
+### Do you like this software? Star the project and become a [⭐ Stargazer](https://github.com/coincashew/ethpillar/stargazers)
+
+[![Github release](https://img.shields.io/github/v/release/coincashew/ethpillar)](https://github.com/coincashew/ethpillar/releases)
+[![License](https://img.shields.io/github/license/coincashew/EthPillar)](https://github.com/coincashew/EthPillar/blob/main/LICENSE)
+[![GitHub Repo stars](https://img.shields.io/github/stars/coincashew/EthPillar?logo=github&color=yellow)](https://github.com/coincashew/EthPillar/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/coincashew/EthPillar?logo=github&color=blue)](https://github.com/coincashew/EthPillar/network/members)
+[![GitHub last commit](https://img.shields.io/github/last-commit/coincashew/EthPillar?logo=git)](https://github.com/coincashew/EthPillar/commits/main)
+[![Discord](https://img.shields.io/badge/discord-join%20chat-5B5EA6)](https://t.co/lnlom4iImq)
+[![Twitter](https://img.shields.io/twitter/follow/coincashew_)](https://x.com/coincashew_)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/coincashew/EthPillar?utm_source=oss&utm_medium=github&utm_campaign=coincashew%2FEthPillar&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 # 🛡️ EthPillar: one-liner setup tool and node management TUI
 
 >This is a fork version specifically designed for the Endurance network, with added support for the nimbus-reth client.
@@ -29,15 +40,15 @@ Already a running a Validator? EthPillar is compatible with [a Coincashew V2 Sta
 
 ## :fire: Features
 
-:chains: **Ephemery Testnet Support**: Quickest and easiest way run a node now with native Besu-Teku and ethstaker-deposit-cli integrations.
+:chains: **Ephemery and Hoodi Testnet Support**: Quickest and easiest way run a node now, risk free. Learn and practice here before moving to mainnet.
 
 :droplet: **Lido CSM Integration**: Deploys in minutes and start staking via [Lido's CSM with as little as 2.4 ETH](https://csm.testnet.fi/?ref=ethpillar).
 
-:ladder: **Ethdo and eth-duties Integration:** Helps stakers with every day common tasks.
+:ladder: **Plugins and Tools**: Node-checker, eth-validator-cli, Dora, Ethdo, client-stats, csm-sentinel and eth-duties Integration helps stakers with every day common tasks.
 
 :bacon: **Grafana and Ethereum-Metrics-Exporter Integration:** Monitoring and dashboards has never been easier.
 
-:mag\_right:  **Built-in Troubleshooting:** Find common issues preventing your node from it's peak performance. Discover EthPillar's built-in Toolbox with port checkers, peer counts, automated system benchmarking.
+:mag\_right:  **Built-in Troubleshooting:** Find common issues preventing your node from it's peak performance. Discover EthPillar's built-in Node Checker which checks for common system issues.
 
 :tada: **Multiple deployment configurations:** Deploy a Solo Staking Node, Full Node Only, Lido CSM Staking Node, Validator Client Only or Failover Staking Node.
 
@@ -80,7 +91,7 @@ Already a running a Validator? EthPillar is compatible with [a Coincashew V2 Sta
 ## :whale: Prerequisites
 
 * Study [Ethstaker's Staking for Beginners](https://www.reddit.com/r/ethstaker/wiki/staking\_for\_beginners/)
-* [Review how staking works and the hardware requirements](guide-or-how-to-setup-a-validator-on-eth2-mainnet/part-i-installation/prerequisites.md)
+* [Review how staking works and the hardware requirements](https://github.com/coincashew/coincashew/blob/master/coins/overview-eth/guide-or-how-to-setup-a-validator-on-eth2-mainnet/part-i-installation/prerequisites.md)
 * A Linux [Ubuntu](https://ubuntu.com/download) installation.&#x20;
   * Tested with [Ubuntu 24.04 LTS](https://ubuntu.com/download)
   * Also appears compatible with [armbian](https://www.armbian.com/download/), [Linux Mint](https://www.linuxmint.com/), [Debian](https://www.debian.org/distrib/netinst)
@@ -258,16 +269,6 @@ Exposing the consensus client RPC port will also be required. You will need to a
 
 </details>
 
-## :joy: POAP
-
-Are you a EthPillar Enjooyer? [Support this public good by purchasing a limited edition POAP!](https://checkout.poap.xyz/169495)
-
-<figure><img src="https://github.com/coincashew/coincashew/raw/bb0f8a3c1661ec45496d4aabc25235d6ce14dc4e/.gitbook/assets/3adf69e9-fb1b-4665-8645-60d71dd01a7b.png" alt=""><figcaption><p>Your EthPillar Enjoyoor's POAP</p></figcaption></figure>
-
-**Purchase link:** [https://checkout.poap.xyz/169495](https://checkout.poap.xyz/169495)
-
-ETH accepted on Mainnet, Arbitrum, Base, Optimism. :pray:
-
 ## :telephone: Get in touch
 
 Have questions? Chat with other home stakers on [Discord](https://discord.gg/dEpAVWgFNB) or open PRs/issues on [Github](https://github.com/OpenFusionist/EthPillar-Endurance).&#x20;
@@ -311,3 +312,5 @@ We appreciate any help! To join in:
 ## :tada: Credits
 
 Shout out to [accidental-green](https://github.com/accidental-green/validator-install) for their pioneering work in Python validator tools, which has unintentionally ignited the inspiration and direction for this project. We are building upon their innovative foundations by forking their validator-install code. A heartfelt thanks to accidental-green for their game-changing contributions to the open-source Ethereum ecosystem!
+
+## :star:Stargazers over time [![Stargazers over time](https://starchart.cc/coincashew/EthPillar.svg?variant=adaptive)](https://starchart.cc/coincashew/EthPillar)

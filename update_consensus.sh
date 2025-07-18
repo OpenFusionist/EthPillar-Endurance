@@ -20,6 +20,8 @@ _platform=$(get_platform)
 _arch=$(get_arch)
 
 function promptYesNo(){
+	# Remove front v if present
+	[[ "${VERSION#v}" == "${TAG#v}" ]] && whiptail --title "Already updated" --msgbox "You are already on the latest version: $VERSION" 10 78 && return
     if whiptail --title "Update ${CLIENT}" --yesno "Installed Version is: $VERSION\nLatest Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update $CLIENT to $TAG?" 15 78; then
   		updateClient
   		promptViewLogs
@@ -55,8 +57,8 @@ function getLatestVersion(){
 		CHANGES_URL="https://github.com/status-im/nimbus-eth2/releases"
 		;;
 	  Prysm)
-	    TAG_URL="https://api.github.com/repos/prysmaticlabs/prysm/releases/latest"
-	    CHANGES_URL="https://github.com/prysmaticlabs/prysm/releases"
+	    TAG_URL="https://api.github.com/repos/OffchainLabs/prysm/releases/latest"
+	    CHANGES_URL="https://github.com/OffchainLabs/prysm/releases"
 	    ;;
 	  *)
 		echo "ERROR: Unable to determine client."
@@ -65,6 +67,8 @@ function getLatestVersion(){
 	  esac
 	#Get tag name and remove leading 'v'
 	TAG=$(curl -s $TAG_URL | jq -r .tag_name | sed 's/.*\(v[0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+	# Exit in case of null tag
+	[[ -z $TAG ]] || [[ $TAG == "null"  ]] && echo "ERROR: Couldn't find the latest version tag" && exit 1
 }
 
 function updateClient(){
@@ -159,19 +163,22 @@ function updateClient(){
 		cd $HOME
 		prysm_version=$(curl -f -s https://prysmaticlabs.com/releases/latest)
 		# Convert to lower case
-		_platform=$(echo ${_platform} | tr '[:upper:]' '[:lower:]')
+		_platform=${_platform,,}
 		file_beacon=beacon-chain-${prysm_version}-${_platform}-${_arch}
 		file_validator=validator-${prysm_version}-${_platform}-${_arch}
+		file_prysmctl=prysmctl-${prysm_version}-${_platform}-${_arch}
 		curl -f -L "https://prysmaticlabs.com/releases/${file_beacon}" -o beacon-chain
 		curl -f -L "https://prysmaticlabs.com/releases/${file_validator}" -o validator
-		chmod +x beacon-chain validator
+		curl -f -L "https://prysmaticlabs.com/releases/${file_prysmctl}" -o prysmctl
+		chmod +x beacon-chain validator prysmctl
 		test -f /etc/systemd/system/consensus.service && sudo systemctl stop consensus
 		test -f /etc/systemd/system/validator.service && sudo service validator stop
 		sudo rm /usr/local/bin/beacon-chain
 		sudo rm /usr/local/bin/validator
-		sudo mv beacon-chain validator /usr/local/bin
+		sudo rm /usr/local/bin/prysmctl
+		sudo mv beacon-chain validator prysmctl /usr/local/bin
 		test -f /etc/systemd/system/consensus.service && sudo systemctl start consensus
-		test -f /etc/systemd/system/validator.service && sudo service validator start
+		test -f /etc/systemd/system/validator.service && sudo systemctl start validator
 	    ;;
 	  esac
 }
@@ -194,7 +201,6 @@ function updateJRE(){
 	fi
 }
 
-setWhiptailColors
 getClient
 getCurrentVersion
 getLatestVersion
