@@ -297,11 +297,11 @@ elif eth_network == "sepolia":
     sync_urls = sepolia_sync_urls
 elif eth_network == "endurance":
     sync_urls = endurance_sync_urls
-    subprocess.run(['bash', f'{os.getenv("BASE_DIR")}/download_endurance_config.sh',
-                'https://github.com/OpenFusionist/network_config'], check=True)
+    command = f'source {os.getenv("BASE_DIR")}/functions.sh && download_endurance_config https://github.com/OpenFusionist/network_config'
+    subprocess.run(['bash', '-c', command], check=True)
 elif eth_network == "endurance_devnet":
-    subprocess.run(['bash', f'{os.getenv("BASE_DIR")}/download_endurance_config.sh',
-                'https://github.com/OpenFusionist/devnet_network_config'], check=True)
+    command = f'source {os.getenv("BASE_DIR")}/functions.sh && download_endurance_config https://github.com/OpenFusionist/devnet_network_config'
+    subprocess.run(['bash', '-c', command], check=True)
     sync_urls = endurance_devnet_sync_urls
 
 # Use a random sync url
