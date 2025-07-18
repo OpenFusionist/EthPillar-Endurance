@@ -12,6 +12,9 @@ BASE_DIR=$HOME/git/ethpillar
 # Load functions
 source $BASE_DIR/functions.sh
 
+# Auto-update Endurance network config if outdated
+auto_update_endurance_config
+
 # Get machine info
 _platform=$(get_platform)
 _arch=$(get_arch)

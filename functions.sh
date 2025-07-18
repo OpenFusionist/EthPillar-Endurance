@@ -15,6 +15,11 @@ set -o history -o histexpand
 # Load BN and EL ENDPOINTS
 source ./env
 
+# Load custom functions
+if [ -f ./endurance_functions.sh ]; then
+    source ./endurance_functions.sh
+fi
+
 # Stores validator index
 declare -a INDICES
 

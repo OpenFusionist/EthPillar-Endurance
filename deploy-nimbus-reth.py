@@ -286,39 +286,8 @@ if not args.skip_prompts:
         file_name = os.path.basename(sys.argv[0])
         print(f'\nInstall cancelled by user. \n\nWhen ready, re-run install command:\npython3 {file_name}')
         exit(0)
-        
-        
-def download_endurance_config(url):
-    # Save current working directory
-    original_dir = os.getcwd()
-    print(f"Before download_endurance_config:Original directory: {original_dir}")
-    print(f"download_endurance_config:URL: {url}")
-    print(f"Ready to download endurance network genesis configuration")
-    subprocess.run(['sudo', 'mkdir', '-p', '/opt/ethpillar/el-cl-genesis-data'], check=True)
-    # Clean up existing directory if it exists
-    if os.path.exists('/tmp/network_config'):
-        shutil.rmtree('/tmp/network_config')
-    subprocess.run(['git', 'clone', url, '/tmp/network_config'])
-    os.chdir('/tmp/network_config')
-    # Add execute permissions to decompress.sh
-    subprocess.run(['chmod', '+x', './decompress.sh'])
-    # Use bash explicitly to run the script
-    subprocess.run(['bash', './decompress.sh'])
-    # Use sudo to copy files
-    print(f'copy custom genesis file to /opt/ethpillar/el-cl-genesis-data')
-    subprocess.run(['sudo', 'cp', 'genesis.json', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'genesis.ssz', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'config.yaml', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'deploy_block.txt', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'deposit_contract.txt', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'deposit_contract_block.txt', '/opt/ethpillar/el-cl-genesis-data/'])
-    subprocess.run(['sudo', 'cp', 'deposit_contract_block_hash.txt', '/opt/ethpillar/el-cl-genesis-data/'])
-    
-    shutil.rmtree('/tmp/network_config')
-    # Restore original working directory
-    os.chdir(original_dir)
-    
-    
+
+
 # Initialize sync urls for selected network
 if eth_network == "mainnet":
     sync_urls = mainnet_sync_urls
@@ -328,9 +297,11 @@ elif eth_network == "sepolia":
     sync_urls = sepolia_sync_urls
 elif eth_network == "endurance":
     sync_urls = endurance_sync_urls
-    download_endurance_config("https://github.com/OpenFusionist/network_config")
+    command = f'cd {os.getenv("BASE_DIR")} && source functions.sh && download_endurance_config https://github.com/OpenFusionist/network_config'
+    subprocess.run(['bash', '-c', command], check=True)
 elif eth_network == "endurance_devnet":
-    download_endurance_config("https://github.com/OpenFusionist/devnet_network_config")
+    command = f'cd {os.getenv("BASE_DIR")} && source functions.sh && download_endurance_config https://github.com/OpenFusionist/devnet_network_config'
+    subprocess.run(['bash', '-c', command], check=True)
     sync_urls = endurance_devnet_sync_urls
 
 # Use a random sync url
@@ -387,8 +358,7 @@ def install_mevboost():
             exit(1)
 
         # Download the latest release binary
-        # TODO: Use a custom version to support reading a custom genesis-fork-version.  Wait for the RC version release before updating.
-        download_url = f"https://github.com/flashbots/mev-boost/releases/download/v1.9-rc2/mev-boost_1.9-rc2_{platform_arch.lower()}_{binary_arch}.tar.gz"
+        download_url = f"https://github.com/flashbots/mev-boost/releases/download/v1.9/mev-boost_1.9_{platform_arch.lower()}_{binary_arch}.tar.gz"
         print(f">> Downloading mevboost > URL: {download_url}")
 
         try:
