@@ -9,7 +9,7 @@ source $BASE_DIR/functions.sh
 setWhiptailColors
 
 _platform=$(get_platform)   # Linux
-_arch=$(get_arch)          # amd64 | arm64
+_arch=$(get_arch)           # amd64 | arm64
 
 # Fetch recent release tags
 mapfile -t TAGS < <(curl -s "https://api.github.com/repos/status-im/nimbus-eth2/releases?per_page=10" | jq -r '.[].tag_name')
@@ -33,7 +33,7 @@ CHOICE=$(whiptail --title "Select Nimbus Version" \
 
 [[ -z "$CHOICE" ]] && exit 0
 
-TAG="${TAGS[$((CHOICE-1))]}"
+TAG="${TAGS[$((CHOICE-1))]}"    
 
 if ! whiptail --yesno "Update Nimbus to ${TAG}?" 8 60; then
   exit 0
@@ -41,8 +41,7 @@ fi
 
 RELEASE_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/tags/${TAG}"
 
-# Find matching asset URL
-DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | jq -r ".assets[] | select(.name | test(\"_${_platform}_${_arch}.*\\.tar\\.gz$\"; \"i\")) | .browser_download_url" | head -1)
+DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | jq -r ".assets[] | select(.name) | .browser_download_url" | grep --ignore-case "_${_platform}_${_arch}.*.tar.gz$")
 
 if [[ -z "$DOWNLOAD_URL" ]]; then
   whiptail --title "Update Nimbus" --msgbox "Could not find suitable binary for ${_platform}/${_arch} in ${TAG}." 8 60
