@@ -20,7 +20,7 @@ _platform=$(get_platform)
 _arch=$(get_arch)
 
 function promptYesNo(){
-    if whiptail --title "Update ${CLIENT}" --yesno "Installed Version is: $VERSION\nLatest Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update $CLIENT to $TAG?" 15 78; then
+    if whiptail --title "Update ${CLIENT}" --yesno "Installed Version is: $VERSION\nLatest Supported Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update $CLIENT to $TAG?" 15 78; then
   		updateClient
   		promptViewLogs
 	fi
@@ -51,7 +51,7 @@ function getLatestVersion(){
 	    CHANGES_URL="https://github.com/ConsenSys/teku/releases"
 	    ;;
 	  Nimbus)
-		TAG_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/latest"
+		TAG_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/tags/v25.4.1"
 		CHANGES_URL="https://github.com/status-im/nimbus-eth2/releases"
 		;;
 	  Prysm)

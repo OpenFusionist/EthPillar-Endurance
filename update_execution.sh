@@ -34,7 +34,7 @@ function getClient(){
 }
 
 function promptYesNo(){
-    if whiptail --title "Update Execution Client - $EL" --yesno "Installed Version is: $VERSION\nLatest Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update $EL to $TAG?" 15 78; then
+    if whiptail --title "Update Execution Client - $EL" --yesno "Installed Version is: $VERSION\nLatest Supported Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update $EL to $TAG?" 15 78; then
   		updateClient
   		promptViewLogs
 	fi
@@ -65,7 +65,7 @@ function getLatestVersion(){
 	    CHANGES_URL="https://github.com/ethereum/go-ethereum/releases"
 		;;
   	  Reth)
-	    TAG_URL="https://api.github.com/repos/paradigmxyz/reth/releases/latest"
+	    TAG_URL="https://api.github.com/repos/paradigmxyz/reth/releases/tags/v1.3.12"
 	    CHANGES_URL="https://github.com/paradigmxyz/reth/releases"
 	    ;;
 	  esac
