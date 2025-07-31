@@ -133,7 +133,8 @@ function updateClient(){
 		test -f /etc/systemd/system/validator.service && sudo service validator start
 		;;
 	  Nimbus)
-		RELEASE_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/latest"
+	  	FIXED_VERSION=v25.4.1
+		RELEASE_URL="https://api.github.com/repos/status-im/nimbus-eth2/releases/tags/${FIXED_VERSION}"
 		BINARIES_URL="$(curl -s $RELEASE_URL | jq -r ".assets[] | select(.name) | .browser_download_url" | grep --ignore-case "_${_platform}_${_arch}.*.tar.gz$")"
 		echo Downloading URL: $BINARIES_URL
 		cd $HOME

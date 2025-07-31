@@ -50,7 +50,8 @@ function getLatestVersion(){
 }
 
 function updateClient(){
-	RELEASE_URL="https://api.github.com/repos/flashbots/mev-boost/releases/latest"
+	FIXED_VERSION=v1.9
+	RELEASE_URL="https://api.github.com/repos/flashbots/mev-boost/releases/tags/${FIXED_VERSION}"
 	BINARIES_URL="$(curl -s $RELEASE_URL | jq -r ".assets[] | select(.name) | .browser_download_url" | grep --ignore-case ${_platform}_${_arch}.tar.gz$)"
 
 	echo Downloading URL: $BINARIES_URL
