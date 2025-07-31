@@ -145,10 +145,11 @@ while true; do
       4 "Restart execution"
       5 "Edit configuration"
       6 "Update to latest release"
-      7 "Resync execution client"
-      8 "Expose execution client RPC Port"
+      7 "Update to specific version"
+      8 "Resync execution client"
+      9 "Expose execution client RPC Port"
       - ""
-      9 "Back to main menu"
+      10 "Back to main menu"
     )
 
     # Display the submenu and get the user's choice
@@ -188,12 +189,15 @@ while true; do
         runScript update_execution.sh
         ;;
       7)
-        runScript resync_execution.sh
+        runScript update_execution_version.sh
         ;;
       8)
-        exposeRpcEL
+        runScript resync_execution.sh
         ;;
       9)
+        exposeRpcEL
+        ;;
+      10)
         break
         ;;
     esac
@@ -211,10 +215,11 @@ while true; do
       4 "Restart consensus"
       5 "Edit configuration"
       6 "Update to latest release"
-      7 "Resync consensus client"
-      8 "Expose consensus client RPC Port"
+      7 "Update to specific version"
+      8 "Resync consensus client"
+      9 "Expose consensus client RPC Port"
       - ""
-      9 "Back to main menu"
+      10 "Back to main menu"
     )
 
     # Display the submenu and get the user's choice
@@ -254,12 +259,15 @@ while true; do
         runScript update_consensus.sh
         ;;
       7)
-        runScript resync_consensus.sh
+        runScript update_consensus_version.sh
         ;;
       8)
-        exposeRpcCL
+        runScript resync_consensus.sh
         ;;
       9)
+        exposeRpcCL
+        ;;
+      10)
         break
         ;;
     esac
@@ -377,10 +385,11 @@ while true; do
       4 "Restart MEV-Boost"
       5 "Edit configuration"
       6 "Update to latest release"
-      7 "Check relay registration"
-      8 "Check relay latency"
+      7 "Update to specific version"
+      8 "Check relay registration"
+      9 "Check relay latency"
       - ""
-      9 "Back to main menu"
+      10 "Back to main menu"
     )
 
     # Display the submenu and get the user's choice
@@ -420,12 +429,15 @@ while true; do
         runScript update_mevboost.sh
         ;;
       7)
-        checkRelayRegistration
+        runScript update_mevboost_version.sh
         ;;
       8)
-        checkRelayLatency
+        checkRelayRegistration
         ;;
       9)
+        checkRelayLatency
+        ;;
+      10)
         break
         ;;
     esac
