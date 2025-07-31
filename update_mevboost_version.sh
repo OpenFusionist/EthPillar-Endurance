@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Author: coincashew.eth | coincashew.com
 # Description: Update MEV-Boost to a version selected by the operator.
 
 BASE_DIR=$HOME/git/ethpillar

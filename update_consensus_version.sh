@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Author: coincashew.eth | coincashew.com
 # Description: Update Nimbus consensus (beacon node & validator) to user-selected version.
 
 BASE_DIR=$HOME/git/ethpillar

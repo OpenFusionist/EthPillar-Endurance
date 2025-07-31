@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Author: coincashew.eth | coincashew.com
 # Description: Update Reth execution client to a user-specified version
 # This script fetches the latest release tags from GitHub and lets the
 # operator pick which one to install.
