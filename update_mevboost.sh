@@ -30,7 +30,7 @@ function getCurrentVersion(){
 }
 
 function promptYesNo(){
-    if whiptail --title "Update mevboost" --yesno "Installed Version is: $VERSION\nLatest Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update to $TAG?" 15 78; then
+    if whiptail --title "Update mevboost" --yesno "Installed Version is: $VERSION\nLatest Supported Version is:    $TAG\n\nReminder: Always read the release notes for breaking changes: $CHANGES_URL\n\nDo you want to update to $TAG?" 15 78; then
   		updateClient
   		promptViewLogs
 	fi
@@ -43,14 +43,15 @@ function promptViewLogs(){
 }
 
 function getLatestVersion(){
-    TAG_URL="https://api.github.com/repos/flashbots/mev-boost/releases/latest"
+    TAG_URL="https://api.github.com/repos/flashbots/mev-boost/releases/tags/v1.9"
 	#Get tag name and remove leading 'v'
 	TAG=$(curl -s $TAG_URL | jq -r .tag_name | sed 's/.*v\([0-9]*\.[0-9]*\).*/\1/')
 	CHANGES_URL="https://github.com/flashbots/mev-boost/releases"
 }
 
 function updateClient(){
-	RELEASE_URL="https://api.github.com/repos/flashbots/mev-boost/releases/latest"
+	FIXED_VERSION=v1.9
+	RELEASE_URL="https://api.github.com/repos/flashbots/mev-boost/releases/tags/${FIXED_VERSION}"
 	BINARIES_URL="$(curl -s $RELEASE_URL | jq -r ".assets[] | select(.name) | .browser_download_url" | grep --ignore-case ${_platform}_${_arch}.tar.gz$)"
 
 	echo Downloading URL: $BINARIES_URL
