@@ -88,6 +88,8 @@ function generateNewValidatorKeys(){
     if network_isConnected; then whiptail --title "Warning: Internet Connection Detected" --msgbox "$MSG_INTERNET" 18 78; fi
     setConfig
     _getEthAddy
+    _getValidatorType
+    _getAmount
 
     NUMBER_NEW_KEYS=$(whiptail --title "# of New Keys" --inputbox "How many keys to generate?" 8 78 --ok-button "Submit" 3>&1 1>&2 2>&3)
     _setKeystorePassword
@@ -95,7 +97,7 @@ function generateNewValidatorKeys(){
     cd $DEPOSIT_CLI_PATH
     KEYFOLDER="${DEPOSIT_CLI_PATH}/$(date +%F-%H%M%S)"
     mkdir -p "$KEYFOLDER"
-    ./deposit --non_interactive new-mnemonic --chain "$NETWORK" --execution_address "$ETHADDRESS" --num_validators "$NUMBER_NEW_KEYS" --keystore_password "$_KEYSTOREPASSWORD" --folder "$KEYFOLDER" --regular-withdrawal
+    ./deposit --non_interactive new-mnemonic --chain "$NETWORK" --execution_address "$ETHADDRESS" --num_validators "$NUMBER_NEW_KEYS" --keystore_password "$_KEYSTOREPASSWORD" --folder "$KEYFOLDER" "$_VALIDATORTYPE" "$_AMOUNT"
     if [ $? -eq 0 ]; then
         #Update path
         KEYFOLDER="$KEYFOLDER/validator_keys"
@@ -128,6 +130,37 @@ function _getNetwork(){
           "For which network are you generating validator keys?" 12 90 1 \
           "endurance_mainnet" "Endurance - Real ACE. Real staking rewards.." \
           3>&1 1>&2 2>&3)
+}
+
+function _getValidatorType(){
+    if [[ $isLido ]]; then
+        _VALIDATORTYPE="--regular-withdrawal"
+        return
+    fi
+    _VALIDATORTYPE=$(whiptail --title "Validator Type" --menu \
+          "Type of Validator? After Pectra, compounding validators are recommended." 10 88 2 \
+          "regular-withdrawal" "32 ACE max effective balance. 0x01 withdrawal credentials" \
+          "compounding" "Up to 2048 ACE max effective balance. 0x02 withdrawal credentials" \
+          3>&1 1>&2 2>&3)
+    if [ -z "$_VALIDATORTYPE" ]; then exit; fi # pressed cancel
+    _VALIDATORTYPE="--$_VALIDATORTYPE"
+}
+
+function _getAmount(){
+    if [[ $isLido ]] || [[ "$_VALIDATORTYPE" == "--regular-withdrawal" ]]; then
+        _AMOUNT="--amount=32"
+        return
+    fi
+    while true; do
+        _AMOUNT=$(whiptail --title "Validator Amount" --inputbox "Please enter the amount of ACE you wish to deposit to these validator(s).\nRequires at least 32 ACE or at max 2048 ACE." 15 78 --ok-button "Submit" 3>&1 1>&2 2>&3)
+        if [ -z "$_AMOUNT" ]; then exit; fi #pressed cancel
+        if [[ "${_AMOUNT}" -ge 32 ]] && [[ "${_AMOUNT}" -le 2048 ]]; then
+            _AMOUNT="--amount=${_AMOUNT}"
+            break
+        else
+            whiptail --title "Error" --msgbox "Invalid Amount. Amount must be between 32 and 2048." 8 78
+        fi
+    done
 }
 
 function importValidatorKeys(){
@@ -164,6 +197,8 @@ function addRestoreValidatorKeys(){
     if network_isConnected; then whiptail --title "Warning: Internet Connection Detected" --msgbox "$MSG_INTERNET" 18 78; fi
     setConfig
     _getEthAddy
+    _getValidatorType
+    _getAmount
 
     NUMBER_NEW_KEYS=$(whiptail --title "# of New Keys" --inputbox "How many keys to generate?" 8 78 --ok-button "Submit" 3>&1 1>&2 2>&3)
     START_INDEX=$(whiptail --title "# of Existing Keys" --inputbox "How many validator keys were previously made? Also known as the starting index." 10 78 --ok-button "Submit" 3>&1 1>&2 2>&3)
@@ -173,7 +208,7 @@ function addRestoreValidatorKeys(){
     cd $DEPOSIT_CLI_PATH
     KEYFOLDER="${DEPOSIT_CLI_PATH}/$(date +%F-%H%M%S)"
     mkdir -p "$KEYFOLDER"
-    ./deposit --non_interactive existing-mnemonic --chain "$NETWORK" --execution_address "$ETHADDRESS" --folder "$KEYFOLDER" --keystore_password "$_KEYSTOREPASSWORD" --validator_start_index "$START_INDEX" --num_validators "$NUMBER_NEW_KEYS" --regular-withdrawal
+    ./deposit --non_interactive existing-mnemonic --chain "$NETWORK" --execution_address "$ETHADDRESS" --folder "$KEYFOLDER" --keystore_password "$_KEYSTOREPASSWORD" --validator_start_index "$START_INDEX" --num_validators "$NUMBER_NEW_KEYS" "$_VALIDATORTYPE" "$_AMOUNT"
     if [ $? -eq 0 ]; then
         #Update path
         KEYFOLDER="$KEYFOLDER/validator_keys"
