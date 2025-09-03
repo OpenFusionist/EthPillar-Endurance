@@ -466,8 +466,9 @@ def download_and_install_reth():
         # Install required dependencies
         subprocess.run(["sudo", "apt-get", '-qq', "install", "build-essential", "cmake", "pkg-config", "libssl-dev", "clang", "-y"], check=True)
 
-        # Define the Github API endpoint to get the latest release
-        url = 'https://api.github.com/repos/paradigmxyz/reth/releases/latest'
+        # Define the Github API endpoint to get the fixed release
+        FIXED_VERSION="v1.3.12"
+        url = f'https://api.github.com/repos/paradigmxyz/reth/releases/tags/{FIXED_VERSION}'
 
         # Send a GET request to the API endpoint
         response = requests.get(url)
@@ -588,8 +589,9 @@ def download_nimbus():
         # Change to the home folder
         os.chdir(os.path.expanduser("~"))
 
-        # Define the Github API endpoint to get the latest release
-        url = 'https://api.github.com/repos/status-im/nimbus-eth2/releases/latest'
+        # Define the Github API endpoint to get the fixed release
+        FIXED_VERSION="v25.4.1"
+        url = f'https://api.github.com/repos/status-im/nimbus-eth2/releases/tags/{FIXED_VERSION}'
 
         # Send a GET request to the API endpoint
         response = requests.get(url)
